@@ -2,6 +2,7 @@
 import { dailyLivingCost, observePrice, recipesOf, seenPrice, trait } from './agent';
 import type { GameData } from './data';
 import { recipeOutputMult } from './events';
+import { remember } from './memory';
 import { addLot, averageCost, makeBatch, stockOf, takeGoods } from './inventory';
 import { random, roundRandom } from './rng';
 import type { Citizen, GoodId, Lot, RecipeDef, World } from './types';
@@ -76,7 +77,10 @@ export function runRecipe(world: World, data: GameData, c: Citizen, r: RecipeDef
       const wear = Math.min(r.wear ?? 1, tool.durability!);
       cost += (tool.unitCost * wear) / def.durability!;
       tool.durability! -= wear;
-      if (tool.durability! <= 0) c.inventory = c.inventory.filter((l) => l !== tool); // broken
+      if (tool.durability! <= 0) {
+        c.inventory = c.inventory.filter((l) => l !== tool); // broken
+        remember(world, c, 'tool_broke', { tool: r.tool });
+      }
     } else {
       factor = r.handFactor ?? 0;
     }

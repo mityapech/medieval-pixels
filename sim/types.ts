@@ -232,6 +232,25 @@ export interface Citizen extends Account, Holder {
   };
   /** Coins at the start of each of the last days, used for job decisions. */
   coinHistory: number[];
+  /** Things that happened to this citizen, most recent last, which they may talk about. */
+  memories: Memory[];
+}
+
+export interface Memory {
+  day: number;
+  kind: string;
+  params: Record<string, string | number>;
+}
+
+/** A short exchange between two citizens, at a place a viewer could be near. */
+export interface Conversation {
+  day: number;
+  /** "market", "church", "home:<householdId>" or "work:<trade>". */
+  place: string;
+  placeLabel: string;
+  topic: string;
+  participants: [CitizenId, CitizenId];
+  lines: { speaker: CitizenId; text: string }[];
 }
 
 export type HouseholdId = number;
@@ -262,6 +281,8 @@ export interface ActiveEvent {
   id: string;
   name: string;
   endsOnDay: number;
+  /** Who it struck, when it struck one household (a house fire). */
+  family?: string;
 }
 
 export interface EventDef {
@@ -318,6 +339,7 @@ export interface DayReport {
   familyEvents: string[];
   /** Units made in town today, by good (imports not included). */
   produced: Record<GoodId, number>;
+  conversations: Conversation[];
   households: number;
   ages: { children: number; adults: number; elders: number };
   /** Coins per living household: median, mean, and the shares held by the richest 3 and the poorer half. */
@@ -340,6 +362,12 @@ export interface World {
   church: Account;
   neighbours: Neighbour[];
   events: ActiveEvent[];
+  /** Every conversation so far, oldest first. */
+  conversations: Conversation[];
+  /** Separate random stream for conversations, so talk never changes the economy. */
+  talkRngState: number;
+  /** Buyer and seller pairs who traded today, who may stop to talk. */
+  meetings: [CitizenId, CitizenId][];
   /** Yesterday's unmet demand by good ("food" for meals), which merchants try to import. */
   unmet: Record<string, number>;
   /** Coins taken in by the treasury over recent days, for deciding how many posts it can afford. */

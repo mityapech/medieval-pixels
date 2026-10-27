@@ -5,6 +5,7 @@ import {
   seenPrice, sellableQty, shopsForSelf, traitSum, trait,
 } from './agent';
 import { transfer } from './coins';
+import { remember } from './memory';
 import { householdOf, isHead, kinOf, livingMembers } from './family';
 import type { GameData } from './data';
 import { addLot, averageCost, makeImportBatch, moveGoods, stockOf, takeGoods } from './inventory';
@@ -37,6 +38,7 @@ export function askPrice(seller: Citizen, good: GoodId): number {
 
 export function tradePhase(world: World, data: GameData, tally: DayTally): void {
   const living = world.citizens.filter((c) => c.alive);
+  world.meetings = [];
   for (const c of living) {
     c.today = { offered: {}, sold: {}, missed: {} };
     for (const g of Object.keys(c.prices)) c.today.offered[g] = sellableQty(world, data, c, g);
@@ -63,6 +65,7 @@ function buy(world: World, data: GameData, buyer: Citizen, seller: Citizen, good
   tally.tax += marketTax(world, data, seller, qty * price);
   moveGoods(seller, buyer, good, qty, price);
   seller.today.sold[good] = (seller.today.sold[good] ?? 0) + qty;
+  world.meetings.push([buyer.id, seller.id]);
   const s = (tally.trades[good] ??= { coins: 0, qty: 0 });
   s.coins += qty * price;
   s.qty += qty;
@@ -434,7 +437,10 @@ function supportHouseholds(world: World, data: GameData): void {
       if (short <= 0) break;
       const spare = k.coins - comfortLine(world, data, k);
       const give = Math.min(Math.floor(spare), short);
-      if (give > 0) transfer(world, k, head, give, `kin support from ${k.name}`);
+      if (give > 0) {
+        transfer(world, k, head, give, `kin support from ${k.name}`);
+        remember(world, head, 'helped_by_kin', { name: k.name.split(' ')[0]!, relation: kinOf(world, head).find((x) => x.person === k)?.relation ?? 'kin' });
+      }
       short -= Math.max(0, give);
     }
     // Someone here has already gone hungry: the comfortable give alms, as a matter of duty.
@@ -444,7 +450,11 @@ function supportHouseholds(world: World, data: GameData): void {
     for (const g of givers) {
       if (short <= 0) break;
       const give = Math.min(Math.floor((g.coins - comfortLine(world, data, g)) * data.town.charityShare), short);
-      if (give > 0) transfer(world, g, head, give, `alms from ${g.name}`);
+      if (give > 0) {
+        transfer(world, g, head, give, `alms from ${g.name}`);
+        remember(world, head, 'received_alms', { giver: g.name });
+        remember(world, g, 'gave_alms', { family: h.family });
+      }
       short -= Math.max(0, give);
     }
   }

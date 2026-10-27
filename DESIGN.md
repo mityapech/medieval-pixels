@@ -42,6 +42,15 @@ Roughly 40 workers plus dependents. Some people can be unemployed, which gives t
 - Earning members support the household: when the head cannot afford the household's food and firewood, other members hand over coins (a recorded transfer, like any payment).
 - When a head dies, the household passes to the spouse, then the eldest adult child, then the eldest other adult. The estate (coins and goods) passes with it. If only children are left, they move in with their nearest kin (grandparents, aunts or uncles, adult siblings), or are fostered by another household. (Provisional answer to the inheritance question in section 12.)
 
+### Memories and conversation
+
+- Citizens remember what happens to them: changing or starting work, going into service or taking a post, a tool breaking, losing kin, receiving or giving alms, help from kin, being taken in by relatives. Memories fade from talk after about two weeks.
+- Each day people who meet talk: members of a household, kin visiting each other, workmates, buyers and sellers at the market, the helped and the priests at church. What they talk about is chosen by how much it weighs on them: present troubles (hunger, a cold hearth, short coins, a broken tool, prices that jumped), what is happening in town (events), recent memories, how the week went, and hopes (a better trade, a child about to start work, comfort at last).
+- The listener answers according to their own situation (also hungry, comfortable enough to help, a smith hearing about a broken tool, a seller hearing about prices).
+- The words live in `data/dialogue.json`; the choice of topic and reply comes from the simulation, never a script.
+- Every conversation has a place (a house, the market, a workplace, the church), so a player nearby can overhear it.
+- Talk only reads the world and uses its own dice, so it can never change the economy.
+
 ### Choosing and changing work
 
 - There are no hand-made rescues. People change work only by the same rules, for the same reasons.
@@ -174,8 +183,8 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 ## 10. Build order
 
 1. **Goods economy**, no land yet. 60 NPCs, five trades, run from the terminal. *(Done.)*
-2. **Stats page.** A browser page that runs the simulation and charts the town over time: goods produced, median wealth, population, prices, jobs, money flows.
-3. **Citizen memories and dialogue.** Citizens remember what happened to them and talk about their work, past events, worries and hopes, generated from their records, never scripted. Conversations have a place, so a player nearby can overhear them.
+2. **Stats page.** `stats.html` runs the simulation in the browser and charts the town over time: goods produced, median wealth, population, prices, jobs, money flows. *(Done.)*
+3. **Citizen memories and dialogue.** *(Done, see section 4.)*
 4. **Functional UI and bare-bones graphics (debug view).** A map of coloured squares and labels: homes, workshops, the market, the church. People move between them through the day, conversations appear near them, and clicking anything shows its record. Price and money panel.
 5. **Land and buildings.** Plots, deeds, construction, buying, selling and renting.
 6. **Player as a citizen.**

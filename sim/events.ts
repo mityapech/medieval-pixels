@@ -2,7 +2,7 @@
 import type { GameData } from './data';
 import { livingMembers } from './family';
 import { random, randomInt } from './rng';
-import type { EventDef, GoodId, World } from './types';
+import type { ActiveEvent, EventDef, GoodId, World } from './types';
 
 function guards(world: World): number {
   return world.citizens.filter((c) => c.alive && c.office === 'guard').length;
@@ -24,24 +24,29 @@ export function rollEvents(world: World, data: GameData): string[] {
   for (const def of data.events) {
     if (world.events.some((e) => e.id === def.id) || random(world) >= def.chance) continue;
     const [lo, hi] = def.durationDays;
-    world.events.push({ id: def.id, name: def.name, endsOnDay: world.day + lo + randomInt(world, hi - lo + 1) - 1 });
+    const event: ActiveEvent = { id: def.id, name: def.name, endsOnDay: world.day + lo + randomInt(world, hi - lo + 1) - 1 };
+    world.events.push(event);
     let text = def.name;
-    if (def.householdLoss) text += burnHousehold(world, def.householdLoss * strength(world, def));
+    if (def.householdLoss) {
+      const fire = burnHousehold(world, def.householdLoss * strength(world, def));
+      text += fire.text;
+      event.family = fire.family;
+    }
     started.push(text);
   }
   return started;
 }
 
 /** A house fire: one household loses a share of everything its members hold (goods only; coins survive). */
-function burnHousehold(world: World, share: number): string {
+function burnHousehold(world: World, share: number): { text: string; family?: string } {
   const homes = world.households.filter((h) => livingMembers(world, h).length);
-  if (!homes.length || share <= 0) return ' (the watch put it out)';
+  if (!homes.length || share <= 0) return { text: ' (the watch put it out)' };
   const h = homes[randomInt(world, homes.length)]!;
   for (const m of livingMembers(world, h)) {
     for (const lot of m.inventory) lot.qty -= Math.round(lot.qty * share);
     m.inventory = m.inventory.filter((l) => l.qty > 0);
   }
-  return ` at the ${h.family} house: ${Math.round(share * 100)}% of their stores lost`;
+  return { text: ` at the ${h.family} house: ${Math.round(share * 100)}% of their stores lost`, family: h.family };
 }
 
 export function recipeOutputMult(world: World, data: GameData, recipe: string): number {

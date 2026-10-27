@@ -2,6 +2,7 @@
 // The first form of hiring; it turns savings that would sit idle into a living for others.
 import { cheapestMeal } from './agent';
 import { transfer } from './coins';
+import { remember } from './memory';
 import type { GameData } from './data';
 import { isWorkingAge, livingMembers } from './family';
 import type { Citizen, Household, World } from './types';
@@ -38,6 +39,7 @@ export function payServants(world: World, data: GameData): string[] {
       s.office = null;
       s.employerHousehold = null;
       events.push(`${s.name} is let go from service with the ${employer.family} household`);
+      remember(world, s, 'let_go', { family: employer.family });
       continue;
     }
     transfer(world, payer, s, wage, 'servant wage');
@@ -69,6 +71,7 @@ export function hireServants(world: World, data: GameData): string[] {
     c.office = 'servant';
     c.employerHousehold = h.id;
     events.push(`${c.name} goes into service with the ${h.family} household${was ? ` (was a ${was})` : ''}`);
+    remember(world, c, 'entered_service', { family: h.family });
   }
   return events;
 }

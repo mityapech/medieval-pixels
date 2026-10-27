@@ -4,4 +4,5 @@ export { createWorld } from './world';
 export { tick, runDays } from './tick';
 export { transfer, totalCoins } from './coins';
 export { traceBatch } from './trace';
+export { converse } from './dialogue';
 export type * from './types';

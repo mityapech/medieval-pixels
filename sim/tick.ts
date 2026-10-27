@@ -2,9 +2,11 @@
 import { isFood, isWorkInput, shopsForSelf } from './agent';
 import { authorityDay, reviewPosts, stockGranary } from './authority';
 import { totalCoins, townCoins } from './coins';
+import { converse } from './dialogue';
 import { householdNeedMult, rollEvents } from './events';
 import type { GameData } from './data';
-import { afterDeath, headOf, isHead, isWorkingAge, livingMembers } from './family';
+import { afterDeath, headOf, inverseRelation, isHead, isWorkingAge, kinOf, livingMembers } from './family';
+import { remember } from './memory';
 import { stockOf, takeGoods } from './inventory';
 import { findWork, reconsiderWork } from './jobs';
 import { adjustPrices, newTally, tradePhase } from './market';
@@ -43,7 +45,15 @@ export function tick(world: World, data: GameData): DayReport {
     c.needs.sleep = 1;
   }
   if (world.day % data.town.jobChange.everyDays === 0) jobChanges.push(...reconsiderWork(world, data));
+  for (const j of jobChanges) {
+    const c = world.citizens[j.id]!;
+    if (!j.from && j.to) remember(world, c, 'started_work', { to: j.to });
+    else if (j.from && j.to) remember(world, c, 'changed_job', { from: j.from, to: j.to });
+  }
   if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data), ...hireServants(world, data));
+
+  const conversations = converse(world, data);
+  world.conversations.push(...conversations);
 
   const living = world.citizens.filter((c) => c.alive);
   const adults = living.filter((c) => isWorkingAge(data, c));
@@ -73,6 +83,7 @@ export function tick(world: World, data: GameData): DayReport {
     jobChanges,
     familyEvents,
     produced,
+    conversations,
     ...townStatistics(world, data),
   };
   world.reports.push(report);
@@ -150,6 +161,7 @@ function eatPhase(world: World, data: GameData, events: string[]): Citizen[] {
       c.alive = false;
       c.diedOnDay = world.day;
       starved.push(c);
+      for (const k of kinOf(world, c)) remember(world, k.person, 'lost_kin', { name: c.name.split(' ')[0]!, relation: inverseRelation(k.relation) });
       events.push(...afterDeath(world, data, c));
     }
   }

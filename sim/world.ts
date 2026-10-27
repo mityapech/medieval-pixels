@@ -28,6 +28,9 @@ export function createWorld(data: GameData, seed = 1): World {
     neighbours: [],
     events: [],
     unmet: {},
+    conversations: [],
+    talkRngState: seed ^ 0x5eed7a1c,
+    meetings: [],
     taxHistory: [],
   };
   const { town } = data;
@@ -118,7 +121,7 @@ function generateFamilies(world: World, data: GameData): void {
         id: world.citizens.length, key: `citizen:${world.citizens.length}`, name, age, office: null, employerHousehold: null, traits: rollTraits(world, data), trade: null,
         householdId: h.id, spouseId: null, parentIds: parents.map((p) => p.id), home: 'unassigned',
         coins: 0, inventory: [], needs: { daysHungry: 0, daysCold: 0, sleep: 1 }, alive: true,
-        prices: {}, seen: {}, today: { offered: {}, sold: {}, missed: {} }, coinHistory: [],
+        prices: {}, seen: {}, today: { offered: {}, sold: {}, missed: {} }, coinHistory: [], memories: [],
       };
       world.citizens.push(c);
       h.memberIds.push(c.id);

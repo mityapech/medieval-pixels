@@ -1,5 +1,6 @@
 // Families and households: who lives with whom, who is kin, and what happens when someone dies.
 import { transfer } from './coins';
+import { remember } from './memory';
 import type { GameData } from './data';
 import { random } from './rng';
 import type { Citizen, Household, Trade, World } from './types';
@@ -58,6 +59,11 @@ export function kinOf(world: World, c: Citizen): { person: Citizen; relation: st
   add(childrenOf(world, c).flatMap((k) => childrenOf(world, k)), 'grandchild');
   add(parents.flatMap((p) => siblingsOf(world, p)).flatMap((a) => childrenOf(world, a)), 'cousin');
   return out;
+}
+
+/** If B is A's <relation>, then A is B's <inverse>. */
+export function inverseRelation(relation: string): string {
+  return ({ parent: 'child', child: 'parent', grandparent: 'grandchild', grandchild: 'grandparent', 'aunt or uncle': 'niece or nephew' } as Record<string, string>)[relation] ?? relation;
 }
 
 export function moveToHousehold(world: World, c: Citizen, to: Household): void {
@@ -121,7 +127,10 @@ export function afterDeath(world: World, data: GameData, dead: Citizen): string[
   if (!foster) return events;
   const newHead = world.citizens[foster.headId]!;
   passEstate(world, dead, newHead);
-  for (const child of rest) moveToHousehold(world, child, foster);
+  for (const child of rest) {
+    moveToHousehold(world, child, foster);
+    remember(world, child, 'moved_in', { name: kin?.name ?? newHead.name });
+  }
   const who = rest.map((c) => c.name).join(', ');
   const one = rest.length === 1;
   events.push(kin

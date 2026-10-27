@@ -9,6 +9,8 @@ const arg = (name: string, fallback: number) => {
 };
 const days = arg('days', 100);
 const seed = arg('seed', 1);
+/** --talk N prints up to N of each day's conversations. */
+const talkPerDay = args.includes('--talk') ? arg('talk', 3) || 3 : 0;
 
 const COLUMNS: [string, string][] = [
   ['wheat', 'wheat'], ['vegetables', 'veg'], ['fruit', 'fruit'], ['bread', 'bread'], ['pie', 'pie'], ['tart', 'tart'],
@@ -37,6 +39,10 @@ runDays(world, data, days, (r: DayReport) => {
     console.log(`       ${j.name} ${what} (${j.reason})`);
   }
   for (const e of r.familyEvents) console.log(`       ${e}`);
+  for (const c of r.conversations.slice(0, talkPerDay)) {
+    console.log(`       At ${c.placeLabel}:`);
+    for (const l of c.lines) console.log(`         ${world.citizens[l.speaker]!.name}: "${l.text}"`);
+  }
   if (r.day % 7 === 0) {
     const week = world.reports.slice(-7);
     const sum = (f: (x: DayReport) => number) => week.reduce((s, x) => s + f(x), 0);

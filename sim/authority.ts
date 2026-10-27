@@ -1,6 +1,7 @@
 // The town authority: market tax in, guards' and priests' wages out, a grant to the church, and the church's alms.
 import { cheapestMeal } from './agent';
 import { transfer } from './coins';
+import { remember } from './memory';
 import type { GameData } from './data';
 import { householdOf, isWorkingAge, livingMembers } from './family';
 import { sellableQty } from './agent';
@@ -77,6 +78,7 @@ function giveAlms(world: World, data: GameData): number {
     const amount = Math.min(world.church.coins, x.dayOfFood * 2 - x.purse);
     if (amount <= 0) continue;
     transfer(world, world.church, x.head, amount, 'alms');
+    remember(world, x.head, 'received_alms', { giver: 'the church' });
     given += amount;
   }
   return given;
@@ -114,6 +116,7 @@ export function reviewPosts(world: World, data: GameData): string[] {
       c.trade = null;
       c.office = office;
       c.employerHousehold = null;
+      remember(world, c, 'took_post', { office });
       events.push(`${c.name} is taken on as a ${office}${was ? ` (was a ${was})` : ''}`);
     }
   }

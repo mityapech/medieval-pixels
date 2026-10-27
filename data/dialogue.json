@@ -1,0 +1,491 @@
+{
+  "greetings": {
+    "household": [
+      "",
+      "",
+      "",
+      "Listen.",
+      "Here's a thing."
+    ],
+    "kin": [
+      "Ah, {listener}.",
+      "Well met, {listener}.",
+      "{listener}! How's the family?"
+    ],
+    "workmate": [
+      "Morning, {listener}.",
+      "{listener}.",
+      "Another day of it, {listener}."
+    ],
+    "market": [
+      "Good day, {listener}.",
+      "{listener}, a moment.",
+      "Busy morning, {listener}?"
+    ],
+    "church": [
+      "Bless you, {listener}.",
+      "Peace be with you, {listener}."
+    ]
+  },
+  "topics": {
+    "hungry": {
+      "say": [
+        "I've not eaten in {days} days.",
+        "There was nothing on our table again. {days} days now.",
+        "My belly's been empty {days} days, {listener}."
+      ],
+      "reply": {
+        "same": [
+          "Nor us. We share whatever turns up.",
+          "It's the same in our house. God help us."
+        ],
+        "comfortable": [
+          "Come by tonight, there'll be pottage enough for you.",
+          "Here, take a few coins. Don't argue."
+        ],
+        "other": [
+          "Go to the church. They're giving alms.",
+          "Ask your kin, surely someone can spare a loaf."
+        ]
+      }
+    },
+    "cold": {
+      "say": [
+        "We've had no fire for {days} nights.",
+        "The hearth's been cold {days} nights. The little ones shiver."
+      ],
+      "reply": {
+        "same": [
+          "Wood's dear for everyone just now.",
+          "We're burning old fence posts ourselves."
+        ],
+        "other": [
+          "The woodcutters can't keep up, they say.",
+          "Ask a laborer, they'll sell you deadwood cheap."
+        ]
+      }
+    },
+    "short_of_coin": {
+      "say": [
+        "Coins are short. {mouths} mouths and not enough coming in.",
+        "I count the purse twice a day and it never grows.",
+        "One more bad week and we're done for."
+      ],
+      "reply": {
+        "same": [
+          "I know it. We're scraping by ourselves.",
+          "Times are hard for all of us."
+        ],
+        "comfortable": [
+          "The rich houses are taking on servants, try there.",
+          "If it comes to it, come to me first."
+        ],
+        "other": [
+          "The church helps those who ask.",
+          "Something will turn up, it always does."
+        ]
+      }
+    },
+    "no_tool": {
+      "say": [
+        "My {tool} is broken and I can't afford another. Working by hand is slow going.",
+        "No {tool} again. I'm doing half a day's work in a whole day."
+      ],
+      "reply": {
+        "smith": [
+          "Come to the smithy, I'll see what I can do on the price.",
+          "I've a {tool} on the bench, nearly done."
+        ],
+        "other": [
+          "The smiths are short of iron, they say.",
+          "A merchant can fetch one from {town}, for a price."
+        ]
+      }
+    },
+    "prices_up": {
+      "say": [
+        "Have you seen the price of {good} now? {price} coins!",
+        "The price of {good} has gone up again. {price} a piece.",
+        "I paid {price} for {good} this morning. Robbery."
+      ],
+      "reply": {
+        "seller": [
+          "It's what it costs me to make, friend.",
+          "Blame the shortage, not me."
+        ],
+        "other": [
+          "Everything's dear this season.",
+          "If it keeps up I'll go without."
+        ]
+      }
+    },
+    "prices_down": {
+      "say": [
+        "The price of {good} is down to {price} this week.",
+        "You can get {good} for {price} now. Good time to buy."
+      ],
+      "reply": {
+        "seller": [
+          "Cheap for you, ruin for me.",
+          "Can't get a better price than that."
+        ],
+        "other": [
+          "About time something got cheaper.",
+          "I'll stock up then."
+        ]
+      }
+    },
+    "event_crop_failure": {
+      "say": [
+        "The fields are blighted. Hardly anything's coming up.",
+        "Worst harvest I've seen. The wheat's rotten in the ear."
+      ],
+      "reply": {
+        "farmer": [
+          "Mine are the same. I don't know how we'll get through.",
+          "I've ploughed for twenty years and never seen it so bad."
+        ],
+        "other": [
+          "The granary will open its doors, God willing.",
+          "The merchants are bringing grain from {town}, at a price."
+        ]
+      }
+    },
+    "event_bumper_harvest": {
+      "say": [
+        "What a harvest! The carts can barely carry it all.",
+        "The fields are heavy this year. God is good."
+      ],
+      "reply": {
+        "farmer": [
+          "Aye, but prices will fall through the floor.",
+          "We'll eat well, if nothing else."
+        ],
+        "other": [
+          "Bread will be cheap for once.",
+          "Good news at last."
+        ]
+      }
+    },
+    "event_bandits": {
+      "say": [
+        "Bandits on the {town} road again. Everything from outside costs more.",
+        "Did you hear? They robbed a cart on the road to {town}."
+      ],
+      "reply": {
+        "guard": [
+          "We're doing what we can. More guards would help.",
+          "We'll catch them. Mark my words."
+        ],
+        "other": [
+          "Where's the watch when you need them?",
+          "I'll not travel till they're caught."
+        ]
+      }
+    },
+    "event_mine_collapse": {
+      "say": [
+        "The mine came down. Ore will be scarce for a while.",
+        "They say three men barely got out of the mine."
+      ],
+      "reply": {
+        "other": [
+          "The smiths will be idle then.",
+          "Terrible business. Thank God no one died."
+        ]
+      }
+    },
+    "event_cold_spell": {
+      "say": [
+        "This cold! We're burning twice the wood.",
+        "I can't remember a winter so bitter."
+      ],
+      "reply": {
+        "laborer": [
+          "Good for my trade, if my hands don't freeze.",
+          "Everyone wants wood and there's only so much."
+        ],
+        "other": [
+          "Keep the children by the fire.",
+          "Wood's dearer by the day."
+        ]
+      }
+    },
+    "event_house_fire": {
+      "say": [
+        "Did you see the fire at the {family} house? They lost nearly everything.",
+        "Poor {family}s, burnt out of their stores."
+      ],
+      "reply": {
+        "other": [
+          "We should take them something.",
+          "Thank God the watch got there in time."
+        ]
+      }
+    },
+    "changed_job": {
+      "say": [
+        "I've given up {from}. I'm a {to} now.",
+        "No more {from} for me. I've turned {to}.",
+        "I'm a {to} these days. {from} didn't pay."
+      ],
+      "reply": {
+        "same_trade": [
+          "Welcome to it! It's honest work.",
+          "Then we're rivals now. Ha!"
+        ],
+        "other": [
+          "I hope it serves you better.",
+          "A bold move. Good luck to you."
+        ]
+      }
+    },
+    "started_work": {
+      "say": [
+        "I've started work as a {to}. The house needed the coin.",
+        "I'm working now, as a {to}."
+      ],
+      "reply": {
+        "other": [
+          "Good for you. It's hard at first.",
+          "Your family must be proud."
+        ]
+      }
+    },
+    "entered_service": {
+      "say": [
+        "I've gone into service with the {family} household.",
+        "I'm a servant at the {family} house now. Steady wage, at least."
+      ],
+      "reply": {
+        "other": [
+          "Better than going hungry.",
+          "Are they good masters?"
+        ]
+      }
+    },
+    "took_post": {
+      "say": [
+        "The town's taken me on as a {office}.",
+        "I'm a {office} now, paid by the treasury."
+      ],
+      "reply": {
+        "other": [
+          "A steady wage! You're lucky.",
+          "Serve the town well."
+        ]
+      }
+    },
+    "let_go": {
+      "say": [
+        "They let me go from the {family} house. Couldn't pay me any more.",
+        "I'm out of service. The {family}s fell on hard times."
+      ],
+      "reply": {
+        "other": [
+          "You'll find something.",
+          "That's a blow. What will you do?"
+        ]
+      }
+    },
+    "lost_kin": {
+      "say": [
+        "My {relation} {name} died. Starved, in the end.",
+        "We buried {name} this week. My {relation}."
+      ],
+      "reply": {
+        "kin": [
+          "I loved {name} too. We'll remember them.",
+          "I can't believe they're gone."
+        ],
+        "other": [
+          "God rest them. I'm so sorry.",
+          "If there's anything I can do..."
+        ]
+      }
+    },
+    "received_alms": {
+      "say": [
+        "If not for {giver}, we'd have gone without.",
+        "{giver} helped us this week. I won't forget it."
+      ],
+      "reply": {
+        "other": [
+          "There's still kindness in this town.",
+          "Pass it on when you can."
+        ]
+      }
+    },
+    "gave_alms": {
+      "say": [
+        "I gave a little to the {family}s. They had nothing.",
+        "Saw the {family} children going hungry. Couldn't stand it."
+      ],
+      "reply": {
+        "other": [
+          "That was good of you.",
+          "God sees these things."
+        ]
+      }
+    },
+    "helped_by_kin": {
+      "say": [
+        "My {relation} {name} helped us out this week.",
+        "Family came through. {name} sent coins."
+      ],
+      "reply": {
+        "other": [
+          "That's what family's for.",
+          "You're lucky to have them."
+        ]
+      }
+    },
+    "moved_in": {
+      "say": [
+        "We live with {name} now. They took us in.",
+        "After everything, {name} gave us a home."
+      ],
+      "reply": {
+        "other": [
+          "God bless them for it.",
+          "You're in good hands."
+        ]
+      }
+    },
+    "tool_broke": {
+      "say": [
+        "My {tool} snapped this morning.",
+        "Finally wore my {tool} out. Need a new one."
+      ],
+      "reply": {
+        "smith": [
+          "Bring it to me, I'll have a new one by tomorrow.",
+          "Iron's dear, but I'll make you one."
+        ],
+        "other": [
+          "That'll cost you.",
+          "Try the smithy, or a merchant."
+        ]
+      }
+    },
+    "good_week": {
+      "say": [
+        "Good week. Sold all my {good} and then some.",
+        "Business is good. I made {gain} coins this week."
+      ],
+      "reply": {
+        "envious": [
+          "Some of us aren't so lucky.",
+          "Leave a bit for the rest of us!"
+        ],
+        "other": [
+          "Glad to hear it.",
+          "You've earned it."
+        ]
+      }
+    },
+    "bad_week": {
+      "say": [
+        "Bad week. I'm {loss} coins down.",
+        "Couldn't sell a thing this week."
+      ],
+      "reply": {
+        "other": [
+          "Next week will be better.",
+          "It's the same everywhere."
+        ]
+      }
+    },
+    "hope_trade": {
+      "say": [
+        "If I can put by enough, I'll take up {trade}. They do well.",
+        "I've been thinking of taking up {trade}. There's money in it."
+      ],
+      "reply": {
+        "same_trade": [
+          "It's harder than it looks.",
+          "There's room for one more, I suppose."
+        ],
+        "other": [
+          "Go on, you'd be good at it.",
+          "Mind you don't lose your shirt."
+        ]
+      }
+    },
+    "hope_child": {
+      "say": [
+        "{child} turns twelve soon. They can start as an apprentice.",
+        "{child} is growing fast. Soon they'll bring in a wage."
+      ],
+      "reply": {
+        "other": [
+          "They grow up so quick.",
+          "A good child, that one."
+        ]
+      }
+    },
+    "hope_comfort": {
+      "say": [
+        "Times are good. I'm thinking of taking on a servant.",
+        "We've put a little by at last. Maybe a bigger house one day."
+      ],
+      "reply": {
+        "struggling": [
+          "Must be nice.",
+          "Remember the rest of us."
+        ],
+        "other": [
+          "You've worked for it.",
+          "God has been kind to you."
+        ]
+      }
+    },
+    "small_talk": {
+      "pairs": [
+        [
+          "Quiet day today.",
+          [
+            "Let's hope it stays that way.",
+            "Aye, for once."
+          ]
+        ],
+        [
+          "The market's busy this morning.",
+          [
+            "Everyone's out buying before prices go up.",
+            "Too busy for my liking."
+          ]
+        ],
+        [
+          "Did you hear the bells at dawn?",
+          [
+            "Woke the whole house.",
+            "Someone's wedding, I'd wager."
+          ]
+        ],
+        [
+          "My back aches from the work.",
+          [
+            "Mine too.",
+            "Sit a while, then."
+          ]
+        ],
+        [
+          "Fine weather for it.",
+          [
+            "It won't last.",
+            "Aye, make the most of it."
+          ]
+        ]
+      ]
+    }
+  },
+  "closers": [
+    "God keep you.",
+    "We'll see.",
+    "Aye, well.",
+    "Take care of yourself.",
+    "",
+    ""
+  ]
+}
