@@ -55,7 +55,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .money dt { color: var(--text-secondary); }
 .money dd { margin: 0; text-align: right; }
 .money p { margin: 8px 0 0; }
-.inspector { top: 64px; left: 12px; width: 320px; max-height: calc(100% - 300px); overflow: auto; padding: 12px 14px; }
+.inspector { top: 64px; left: 12px; width: 320px; max-height: calc(100% - 330px); overflow: auto; padding: 12px 14px; }
 .inspector h3 { margin: 0; font-size: 16px; }
 .inspector h4 { margin: 12px 0 4px; font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 .inspector ul { margin: 0; padding-left: 16px; }
@@ -75,3 +75,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
   .money { display: none; }
   .inspector { width: calc(100% - 24px); }
 }
+
+.plain { border: 1px solid var(--border); background: transparent; color: var(--text-primary); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+.seed { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+.seed label { color: var(--text-secondary); display: inline-flex; gap: 6px; align-items: center; }
+.seed input { width: 72px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; }
+.tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.tabs button { border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-weight: 600; padding: 2px 8px; border-radius: 6px; cursor: pointer; }
+.tabs button[aria-selected='true'] { background: var(--border); color: var(--text-primary); }
+.overheard ol#news li { font-size: 12px; }
+.trace { margin: 4px 0 0; padding-left: 0; list-style: none; font-size: 12px; }
+.trace li { padding-left: calc(var(--depth) * 14px); }
+.people-filter { width: 100%; margin: 6px 0; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; }

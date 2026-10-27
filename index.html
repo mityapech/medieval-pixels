@@ -16,6 +16,12 @@
         <button type="button" data-speed="10" title="1 day = 24 seconds">10×</button>
         <button type="button" data-speed="60" title="1 day = 4 seconds">60×</button>
       </div>
+      <button type="button" id="step" class="plain" title="Jump to the next morning">Step one day</button>
+      <form id="newtown" class="seed">
+        <label>Seed <input id="seed" type="number" min="1" step="1" /></label>
+        <button type="submit" class="plain">New town</button>
+      </form>
+      <button type="button" id="people" class="plain">People</button>
       <a id="ledger" class="link" href="/stats.html">Town Ledger</a>
     </header>
     <aside class="panel money" aria-label="Market and money">
@@ -27,9 +33,13 @@
       <button type="button" class="close" id="close" aria-label="Close">×</button>
       <div id="inspect"></div>
     </aside>
-    <section class="panel overheard" aria-label="Overheard nearby">
-      <h2>Overheard nearby</h2>
+    <section class="panel overheard" aria-label="Town feed">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-log" aria-selected="true">Overheard nearby</button>
+        <button type="button" role="tab" id="tab-news" aria-selected="false">Town news</button>
+      </div>
       <ol id="log"></ol>
+      <ol id="news" hidden></ol>
     </section>
     <p class="help">WASD or arrow keys to walk · click anyone or any building to inspect · + / − to zoom</p>
     <script type="module" src="/render/game/main.ts"></script>

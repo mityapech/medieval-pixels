@@ -4,7 +4,8 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
-  cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, type Citizen, type Conversation,
+  cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Citizen, type Conversation,
+  type DayReport,
 } from '../../sim/index';
 import { MAP_H, MAP_W, TILE, WORKPLACE, centre, layoutTown, spotIn, type Place } from './layout';
 
@@ -160,6 +161,7 @@ function scheduleTalks(conversations: Conversation[]): void {
 function newDay(): void {
   const report = tick(world, data);
   scheduleTalks(report.conversations);
+  postNews(report);
   refreshMoney();
   if (selected !== null) inspectCitizen(world.citizens[selected]!);
 }
@@ -314,6 +316,57 @@ function refreshMoney(): void {
   (document.getElementById('ledger') as HTMLAnchorElement).href = `/stats.html?seed=${seed}&days=${Math.max(100, world.day)}`;
 }
 
+// ---------- controls: step a day, start a new town ----------
+
+document.getElementById('step')!.addEventListener('click', () => {
+  // Finish today's remaining conversations unheard and jump to the next morning.
+  newDay();
+  clock = 0.25;
+});
+const seedInput = document.getElementById('seed') as HTMLInputElement;
+seedInput.value = String(seed);
+document.getElementById('newtown')!.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const next = Math.max(1, Math.floor(Number(seedInput.value) || 1));
+  location.search = `?seed=${next === seed ? 1 + Math.floor(Math.random() * 99999) : next}&speed=${speed}`;
+});
+
+// ---------- town news: deaths, work, families, events, trade ----------
+
+function postNews(r: DayReport): void {
+  const items: string[] = [];
+  for (const e of r.eventsStarted) items.push(`Event: ${e}`);
+  for (const s of r.starved) items.push(`${s.name} starved`);
+  for (const j of r.jobChanges) {
+    items.push(!j.from ? `${j.name} started work as a ${j.to}` : !j.to ? `${j.name} stopped working as a ${j.from}` : `${j.name} left ${j.from} work to become a ${j.to}`);
+  }
+  items.push(...r.familyEvents);
+  if (r.imports || r.exports) items.push(`Trade abroad: ${r.imports} coins of imports, ${r.exports} of exports`);
+  if (r.flows.churchAlms) items.push(`The church gave ${r.flows.churchAlms} coins in alms`);
+  const news = document.getElementById('news')!;
+  const li = document.createElement('li');
+  const where = document.createElement('div');
+  where.className = 'where';
+  where.textContent = `Day ${r.day}`;
+  li.append(where);
+  for (const text of items.length ? items : ['A quiet day.']) {
+    const row = document.createElement('div');
+    row.textContent = text;
+    li.append(row);
+  }
+  news.prepend(li);
+  while (news.children.length > 60) news.lastElementChild!.remove();
+}
+
+function showTab(which: 'log' | 'news'): void {
+  document.getElementById('log')!.hidden = which !== 'log';
+  document.getElementById('news')!.hidden = which !== 'news';
+  document.getElementById('tab-log')!.setAttribute('aria-selected', String(which === 'log'));
+  document.getElementById('tab-news')!.setAttribute('aria-selected', String(which === 'news'));
+}
+document.getElementById('tab-log')!.addEventListener('click', () => showTab('log'));
+document.getElementById('tab-news')!.addEventListener('click', () => showTab('news'));
+
 // ---------- inspector ----------
 
 let selected: number | null = null;
@@ -390,8 +443,27 @@ function inspectCitizen(c: Citizen): void {
   }
   const owned = Object.entries(goods);
   if (owned.length) {
-    body.append(h('h4', 'Holds'));
-    body.append(h('p', owned.map(([g, q]) => `${q} ${data.goods.get(g)!.name}`).join(', ')));
+    body.append(h('h4', 'Holds (click to trace where it came from)'));
+    const ul = h('ul');
+    for (const [g, q] of owned) {
+      const li = h('li');
+      const b = h('button', `${q} ${data.goods.get(g)!.name}`, 'person-link');
+      const trace = h('ol', undefined, 'trace');
+      trace.hidden = true;
+      b.addEventListener('click', () => {
+        trace.hidden = !trace.hidden;
+        if (trace.hidden || trace.childElementCount) return;
+        const lot = c.inventory.find((l) => l.good === g)!;
+        for (const step of traceBatch(world, lot.batch).slice(0, 12)) {
+          const row = h('li', `${step.batch.qty} ${data.goods.get(step.batch.good)!.name}: ${step.makerName}, day ${step.batch.day}`);
+          row.style.setProperty('--depth', String(step.depth));
+          trace.append(row);
+        }
+      });
+      li.append(b, trace);
+      ul.append(li);
+    }
+    body.append(ul);
   }
   if (c.memories.length) {
     body.append(h('h4', 'Remembers'));
@@ -411,6 +483,30 @@ function inspectCitizen(c: Citizen): void {
   }
   panel.hidden = false;
 }
+
+/** Everyone in town, filterable by name or work; click a name to inspect them. */
+function showPeople(): void {
+  selected = null;
+  const filter = document.createElement('input');
+  filter.className = 'people-filter';
+  filter.placeholder = 'Filter by name or work';
+  filter.setAttribute('aria-label', 'Filter people');
+  const ul = h('ul');
+  const render = () => {
+    const q = filter.value.trim().toLowerCase();
+    const work = (c: Citizen) => c.office ?? c.trade ?? (c.age < data.town.workingAge.adult ? 'child' : c.age >= data.town.workingAge.elder ? 'elder' : 'at home');
+    ul.replaceChildren(...world.citizens
+      .filter((c) => !q || c.name.toLowerCase().includes(q) || work(c).includes(q))
+      .sort((a, b) => Number(b.alive) - Number(a.alive) || a.name.localeCompare(b.name))
+      .map((c) => personLink(c, ` — ${work(c)}, ${c.age}, ${c.coins} coins`)));
+  };
+  filter.addEventListener('input', render);
+  render();
+  body.replaceChildren(h('h3', `People (${world.citizens.filter((c) => c.alive).length} living)`), filter, ul);
+  panel.hidden = false;
+  filter.focus();
+}
+document.getElementById('people')!.addEventListener('click', showPeople);
 
 function inspectPlace(p: Place): void {
   selected = null;
