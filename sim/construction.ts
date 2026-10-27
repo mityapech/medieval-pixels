@@ -9,6 +9,7 @@ import { livingMembers } from './family';
 import { buyBest, type DayTally } from './market';
 import { remember } from './memory';
 import { takeGoods } from './inventory';
+import { buildNewHomes } from './growth';
 import type { Citizen, World } from './types';
 
 /** Work sites in the country, which do not wear down. */
@@ -75,5 +76,6 @@ export function constructionDay(world: World, data: GameData, tally: DayTally): 
     remember(world, builder, 'built', { place: label });
     news.push(`${builder.name} repaired the ${label}`);
   }
+  buildNewHomes(world, data, tally, builders, news);
   return news;
 }

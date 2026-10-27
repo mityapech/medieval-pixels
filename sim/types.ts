@@ -79,6 +79,17 @@ export interface TownConfig {
     startShare: number;
   };
   comfort: { thresholdDays: number; spendShare: number; basket: Record<GoodId, number> };
+  /** Ageing, births, old age and marriage. A year passes every yearDays days. */
+  growth: {
+    yearDays: number;
+    birthsPerCouplePerYear: number;
+    fertileAges: [number, number];
+    oldAgeFrom: number;
+    /** Each year past oldAgeFrom adds this much to the yearly chance of dying of old age. */
+    oldAgeRiskPerYearOver: number;
+    marriagesPerSinglePerYear: number;
+    marryAges: [number, number];
+  };
   /** Buildings wear down each day; their owners pay builders to repair them with these materials. */
   construction: {
     materials: Record<GoodId, number>;
@@ -403,6 +414,9 @@ export interface DayReport {
   /** Coins spent today on comforts by well-off households. */
   comfortSpending: number;
   starved: { id: CitizenId; name: string }[];
+  born: { id: CitizenId; name: string }[];
+  diedOfAge: { id: CitizenId; name: string; age: number }[];
+  married: string[];
   jobChanges: { id: CitizenId; name: string; from: Trade | null; to: Trade | null; reason: string }[];
   /** Deaths, new heads, children moving to kin: family events worth printing. */
   familyEvents: string[];
@@ -428,6 +442,8 @@ export interface World {
   households: Household[];
   /** Terrain, roads and buildings, generated from the seed (see sim/land.ts). */
   land: Land;
+  /** New houses being built for married couples (see sim/growth.ts). */
+  newHomes: { key: string; a: CitizenId; b: CitizenId; progress: number }[];
   /** Condition of each building (0 ruined, 100 new), by place key. See sim/construction.ts. */
   buildings: Record<string, { condition: number }>;
   treasury: Account;

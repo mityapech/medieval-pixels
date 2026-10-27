@@ -1,5 +1,5 @@
 {
-  "population": 60,
+  "population": 100,
   "householdKinds": {
     "single": 2,
     "couple": 2,
@@ -42,6 +42,15 @@
     "wageMeals": 3,
     "affordDays": 20,
     "membersForSecond": 6
+  },
+  "growth": {
+    "yearDays": 30,
+    "birthsPerCouplePerYear": 0.3,
+    "fertileAges": [18, 40],
+    "oldAgeFrom": 60,
+    "oldAgeRiskPerYearOver": 0.02,
+    "marriagesPerSinglePerYear": 0.25,
+    "marryAges": [17, 35]
   },
   "construction": {
     "materials": { "wood": 2, "stone": 2, "nails": 4 },

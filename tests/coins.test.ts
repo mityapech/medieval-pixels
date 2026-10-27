@@ -25,11 +25,12 @@ describe('total coins never change', () => {
     const balance = new Map(startBalance);
     for (const e of world.ledger) {
       expect(Number.isInteger(e.amount) && e.amount > 0).toBe(true);
-      balance.set(e.from, balance.get(e.from)! - e.amount);
-      balance.set(e.to, balance.get(e.to)! + e.amount);
+      // Children born during the run had no starting balance: they start with nothing.
+      balance.set(e.from, (balance.get(e.from) ?? 0) - e.amount);
+      balance.set(e.to, (balance.get(e.to) ?? 0) + e.amount);
     }
     // Any coin changed outside transfer() would show up as a mismatch here.
-    for (const a of allAccounts(world)) expect(a.coins).toBe(balance.get(a.key));
+    for (const a of allAccounts(world)) expect(a.coins).toBe(balance.get(a.key) ?? 0);
     for (const a of allAccounts(world)) expect(a.coins).toBeGreaterThanOrEqual(0);
   });
 

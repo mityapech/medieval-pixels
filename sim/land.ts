@@ -6,8 +6,8 @@ import type { GameData } from './data';
 import { livingMembers } from './family';
 import type { Land, Place, Terrain, World } from './types';
 
-const W = 60;
-const H = 44;
+const W = 76;
+const H = 56;
 
 /** A small seeded generator (mulberry32), separate from the world's. */
 function stream(seed: number): () => number {
@@ -73,10 +73,12 @@ export function generateLand(world: World, data: GameData): Land {
 
   // The town sits on the shore: its centre a little way in from the lake, its wall a wobbly ring.
   const along = 0.35 + rand() * 0.3;
-  const inward = lakeDepth + 14 + rand() * 2;
+  const inward = lakeDepth + 4 + (lakeSide % 2 === 0 ? 13 : 10) * Math.sqrt(Math.max(1, world.households.length) / 18) + rand() * 2;
   const [cx, cy] = [[inward, H * along], [W * along, inward], [W - 1 - inward, H * along], [W * along, H - 1 - inward]][lakeSide]! as [number, number];
-  const rx = 13 + rand() * 2;
-  const ry = 10 + rand() * 2;
+  // The wall encloses room for the households there are (sized so about 18 fit a 13 by 10 town).
+  const scale = Math.sqrt(Math.max(1, world.households.length) / 18);
+  const rx = (13 + rand() * 2) * scale;
+  const ry = (10 + rand() * 2) * scale;
   const wobble = Array.from({ length: 12 }, () => 0.88 + rand() * 0.2);
   const radiusAt = (a: number) => {
     const t = ((a / (Math.PI * 2)) * 12 + 12) % 12;
@@ -373,4 +375,56 @@ function path(from: { x: number; y: number }, to: { x: number; y: number }, cost
   const out: number[] = [];
   for (let i = goal; i !== -1; i = prev[i]!) out.push(i);
   return out;
+}
+
+/**
+ * Finds a free plot for a new house of the given size: on open ground, by a street, not touching other buildings,
+ * inside the wall if there is room (nearer the market the better), else outside it. Uses a stream from the seed and
+ * day, so it never touches the economy's random numbers. Returns undefined if the map is full.
+ */
+export function findHousePlot(world: World, w: number, h: number): { x: number; y: number } | undefined {
+  const { width: MW, height: MH, terrain, roads, walls, gates, docks, places } = world.land;
+  const rand = stream(world.seed * 7919 + world.day * 31 + places.length);
+  const blocked = new Uint8Array(MW * MH);
+  for (const t of [...roads, ...walls, ...gates, ...docks]) blocked[t] = 1;
+  terrain.forEach((t, i) => { if (t !== 'grass') blocked[i] = 1; });
+  for (const p of places) {
+    for (let y = p.y - 1; y < p.y + p.h + 1; y++) for (let x = p.x - 1; x < p.x + p.w + 1; x++) if (x >= 0 && y >= 0 && x < MW && y < MH) blocked[y * MW + x] = 1;
+  }
+  // Inside the wall: tiles the map edge cannot reach without crossing the wall, a gate or water.
+  const outside = new Uint8Array(MW * MH);
+  const wallish = new Set([...walls, ...gates]);
+  const queue: number[] = [];
+  for (let x = 0; x < MW; x++) queue.push(x, (MH - 1) * MW + x);
+  for (let y = 0; y < MH; y++) queue.push(y * MW, y * MW + MW - 1);
+  while (queue.length) {
+    const i = queue.pop()!;
+    if (outside[i] || wallish.has(i) || terrain[i] === 'water') continue;
+    outside[i] = 1;
+    const x = i % MW;
+    const y = Math.floor(i / MW);
+    if (x > 0) queue.push(i - 1);
+    if (x < MW - 1) queue.push(i + 1);
+    if (y > 0) queue.push(i - MW);
+    if (y < MH - 1) queue.push(i + MW);
+  }
+  const market = places.find((p) => p.key === 'market');
+  const mx = market ? market.x + market.w / 2 : MW / 2;
+  const my = market ? market.y + market.h / 2 : MH / 2;
+  const roadSet = new Set(roads);
+  let best: { x: number; y: number; s: number } | undefined;
+  for (let t = 0; t < 4000; t++) {
+    const x = 1 + Math.floor(rand() * (MW - w - 2));
+    const y = 1 + Math.floor(rand() * (MH - h - 2));
+    let ok = true;
+    let byRoad = false;
+    for (let j = y; j < y + h && ok; j++) for (let i = x; i < x + w; i++) if (blocked[j * MW + i]) { ok = false; break; }
+    if (!ok) continue;
+    for (let j = y - 2; j <= y + h + 1; j++) for (let i = x - 2; i <= x + w + 1; i++) if (roadSet.has(j * MW + i)) byRoad = true;
+    if (!byRoad) continue;
+    const inTown = !outside[(y + 1) * MW + x + 1];
+    const s = (inTown ? 20 : 0) - Math.hypot(x + w / 2 - mx, y + h / 2 - my) * 0.3 + rand();
+    if (!best || s > best.s) best = { x, y, s };
+  }
+  return best ? { x: best.x, y: best.y } : undefined;
 }

@@ -10,5 +10,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
+    // Whole-town runs of 100 days take a second or two each.
+    testTimeout: 60_000,
   },
 });

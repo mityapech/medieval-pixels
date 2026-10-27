@@ -16,7 +16,7 @@ for (const v of variants.length ? variants : ['{}']) {
   for (let seed = Number(first); seed <= Number(last); seed++) {
     const w = createWorld(data, seed);
     runDays(w, data, Number(process.env.DAYS ?? 100));
-    deaths.push(w.citizens.filter((c) => !c.alive).length);
+    deaths.push(w.reports.reduce((s, r) => s + r.starved.length, 0));
   }
   const total = deaths.reduce((s, d) => s + d, 0);
   console.log(`${v.padEnd(60)} total ${String(total).padStart(4)} | zero-death seeds ${deaths.filter((d) => d === 0).length}/${deaths.length} | worst ${Math.max(...deaths)} | ${deaths.join(' ')}`);

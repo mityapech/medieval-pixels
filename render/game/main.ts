@@ -40,7 +40,7 @@ const SPRITES = spritesJson as { places: Record<string, string>; people: Record<
 const PLACEHOLDER: Record<string, number> = {
   market: 0xcbb98f, church: 0x9c97ab, granary: 0xa77e48, fields: 0xc2a24a, woods: 0x7a5a2c,
   bakery: 0xb9733e, smithy: 0x5f5d58, merchants: 0xa98756, house: 0x8a6440, townhouse: 0x6e4a2e,
-  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e,
+  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e, site: 0xc9b48a,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
@@ -126,32 +126,46 @@ function label(text: string, size = 11, colour = 0x1a1a19): Text {
   return new Text({ text, style: { fontFamily: MAP_FONT, fontSize: size, fill: colour, fontWeight: 'bold', padding: 4 }, resolution: 3 });
 }
 
-for (const p of places.values()) {
-  const { colour } = spriteFor(p.sprite);
-  const g = new Graphics()
-    .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).fill(colour)
-    .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).stroke({ width: 2, color: 0x3a3226, alpha: 0.5 });
-  g.eventMode = 'static';
-  g.cursor = 'pointer';
-  g.on('pointertap', () => inspectPlace(p));
-  const bright = ((colour >> 16) & 255) * 0.3 + ((colour >> 8) & 255) * 0.59 + (colour & 255) * 0.11;
-  const t = label(p.label, p.sprite === 'house' || p.sprite === 'townhouse' ? 9 : 12, bright < 120 ? 0xf3ead8 : 0x1a1a19);
-  t.position.set(p.x * TILE + 6, p.y * TILE + 5);
-  placeLayer.addChild(g, t);
+/** Draws every building. Called again when the town changes (a new house going up, or finished). */
+function drawPlaces(): void {
+  placeLayer.removeChildren().forEach((c) => c.destroy({ children: true }));
+  for (const p of places.values()) {
+    const { colour } = spriteFor(p.sprite);
+    const g = new Graphics()
+      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).fill(colour)
+      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).stroke({ width: 2, color: 0x3a3226, alpha: 0.5 });
+    if (p.sprite === 'site') {
+      // Scaffolding: crossed poles over the plot.
+      for (let k = 0; k < p.w; k++) g.moveTo((p.x + k) * TILE + 4, p.y * TILE + 4).lineTo((p.x + k + 1) * TILE - 4, (p.y + p.h) * TILE - 4).stroke({ width: 2, color: 0x5a3f22 });
+    }
+    g.eventMode = 'static';
+    g.cursor = 'pointer';
+    g.on('pointertap', () => inspectPlace(p));
+    const bright = ((colour >> 16) & 255) * 0.3 + ((colour >> 8) & 255) * 0.59 + (colour & 255) * 0.11;
+    const t = label(p.label, p.sprite === 'house' || p.sprite === 'townhouse' || p.sprite === 'site' ? 9 : 12, bright < 120 ? 0xf3ead8 : 0x1a1a19);
+    t.position.set(p.x * TILE + 6, p.y * TILE + 5);
+    placeLayer.addChild(g, t);
+  }
 }
+drawPlaces();
 
 // People: small squares, coloured by occupation.
 interface Walker extends Mover { g: Graphics; tag?: Text }
 const walkers = new Map<number, Walker>();
-for (const c of world.citizens) {
-  const home = centre(places.get(`home:${c.householdId}`)!);
-  const g = new Graphics();
-  g.eventMode = 'static';
-  g.cursor = 'pointer';
-  g.on('pointertap', (e) => { e.stopPropagation(); inspectCitizen(c); });
-  peopleLayer.addChild(g);
-  walkers.set(c.id, { c, g, x: home.x, y: home.y });
+/** Adds a walker for anyone not yet on the map (everyone at the start, then newborns). */
+function addWalkers(): void {
+  for (const c of world.citizens) {
+    if (walkers.has(c.id)) continue;
+    const home = centre(places.get(`home:${c.householdId}`) ?? places.get('market')!);
+    const g = new Graphics();
+    g.eventMode = 'static';
+    g.cursor = 'pointer';
+    g.on('pointertap', (e) => { e.stopPropagation(); inspectCitizen(c); });
+    peopleLayer.addChild(g);
+    walkers.set(c.id, { c, g, x: home.x, y: home.y });
+  }
 }
+addWalkers();
 
 /** What someone is doing, shown over their head when they are near the observer. */
 function showTag(w: Walker, task: string | undefined): void {
@@ -228,7 +242,15 @@ function scheduleTalks(conversations: Conversation[]): void {
 }
 
 function newDay(): void {
+  const before = world.land.places.map((p) => `${p.key}|${p.label}`).join();
   const report = tick(world, data);
+  // The town changed: houses started or finished, children born.
+  if (world.land.places.map((p) => `${p.key}|${p.label}`).join() !== before) {
+    places.clear();
+    for (const [k, p] of layoutTown(world)) places.set(k, p);
+    drawPlaces();
+  }
+  addWalkers();
   life.newDay();
   scheduleTalks(report.conversations);
   scheduleAdverts(report);

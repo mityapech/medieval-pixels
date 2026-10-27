@@ -13,6 +13,7 @@ import { adjustPrices, newTally, tradePhase } from './market';
 import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
 import { constructionDay } from './construction';
+import { growthDay, type GrowthNews } from './growth';
 import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
@@ -55,6 +56,9 @@ export function tick(world: World, data: GameData): DayReport {
   }
   if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data), ...hireServants(world, data));
 
+  const growth: GrowthNews = { born: [], diedOfAge: [], married: [], homes: [] };
+  growthDay(world, data, growth, familyEvents);
+
   const conversations = converse(world, data);
   world.conversations.push(...conversations);
 
@@ -82,6 +86,9 @@ export function tick(world: World, data: GameData): DayReport {
     alive: living.length,
     broke: living.filter((c) => c.coins === 0 && shopsForSelf(world, c)).length,
     comfortSpending: tally.comfort,
+    born: growth.born,
+    diedOfAge: growth.diedOfAge,
+    married: growth.married,
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,
     familyEvents,

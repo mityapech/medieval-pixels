@@ -21,6 +21,7 @@ export function createWorld(data: GameData, seed = 1): World {
     households: [],
     land: { width: 0, height: 0, terrain: [], roads: [], boardwalks: [], walls: [], gates: [], docks: [], river: false, places: [] },
     buildings: {},
+    newHomes: [],
     batches: new Map(),
     nextBatchId: 1,
     ledger: [],
@@ -120,18 +121,7 @@ function generateFamilies(world: World, data: GameData): void {
     world.households.push(h);
 
     const person = (age: number, parents: Citizen[] = [], surname = family): Citizen => {
-      let name = '';
-      do name = `${pick(world, data.firstNames)} ${surname}`;
-      while (usedNames.has(name));
-      usedNames.add(name);
-      const c: Citizen = {
-        id: world.citizens.length, key: `citizen:${world.citizens.length}`, name, age, office: null, employerHousehold: null, traits: rollTraits(world, data), trade: null,
-        householdId: h.id, spouseId: null, parentIds: parents.map((p) => p.id), home: 'unassigned',
-        coins: 0, inventory: [], needs: { daysHungry: 0, daysCold: 0, sleep: 1 }, alive: true,
-        prices: {}, seen: {}, today: { offered: {}, sold: {}, missed: {} }, coinHistory: [], memories: [],
-      };
-      world.citizens.push(c);
-      h.memberIds.push(c.id);
+      const c = newCitizen(world, data, h, age, parents, surname, usedNames);
       if (h.headId < 0) h.headId = c.id;
       return c;
     };
@@ -205,6 +195,29 @@ function linkKin(world: World, data: GameData): void {
     for (const s of sharedSiblings) if (!s.parentIds.length) s.parentIds = parents.map((p) => p.id);
   }
   void data;
+}
+
+/** Adds a new citizen to a household (at the town's founding, or a birth). Names are unique within the town. */
+export function newCitizen(
+  world: World, data: GameData, h: Household, age: number, parents: Citizen[], surname: string,
+  usedNames = new Set(world.citizens.map((c) => c.name)),
+): Citizen {
+  let name = '';
+  for (let tries = 0; ; tries++) {
+    name = `${pick(world, data.firstNames)} ${surname}`;
+    if (!usedNames.has(name)) break;
+    if (tries > 40) { name = `${name} ${['the Younger', 'the Second', 'Junior'][tries % 3]}`; if (!usedNames.has(name)) break; }
+  }
+  usedNames.add(name);
+  const c: Citizen = {
+    id: world.citizens.length, key: `citizen:${world.citizens.length}`, name, age, office: null, employerHousehold: null,
+    traits: rollTraits(world, data), trade: null, householdId: h.id, spouseId: null, parentIds: parents.map((p) => p.id),
+    home: 'unassigned', coins: 0, inventory: [], needs: { daysHungry: 0, daysCold: 0, sleep: 1 }, alive: true,
+    prices: {}, seen: {}, today: { offered: {}, sold: {}, missed: {} }, coinHistory: [], memories: [],
+  };
+  world.citizens.push(c);
+  h.memberIds.push(c.id);
+  return c;
 }
 
 function rollTraits(world: World, data: GameData): string[] {

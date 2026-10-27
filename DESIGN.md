@@ -24,7 +24,7 @@ This file is the spec. Build to it, and update it whenever a rule changes.
 - One town on a grid map, divided into **plots** (see section 8).
 - The land and town are generated from the seed (`sim/land.ts`), as a walled lakeside town: a lake on one edge, a canal from it through the middle of town with plank bridges and boardwalk streets, docks on the shore, and a stone wall with gates where the roads to the neighbouring towns come in. Inside the wall: the market by the canal, church, granary, merchants' row, bakery, and the smithy against the wall. Outside: fields on open ground, woods and quarry in the forest. Houses of mixed sizes are packed irregularly along streets and against each other; the well-off take townhouses near the market and canal, and the poorest may build cottages outside the wall near their work. The look is autumnal (golden grass, red and orange woods). Generation uses its own random stream, so the map never changes the economy, and the same seed always gives the same town.
 - **Time:** one in-game day is about 4 real minutes (assumed default, adjustable in settings). The simulation must also run faster than real time for automated tests.
-- Seasons, weather, and aging are out of scope for v0.
+- Seasons and weather are out of scope for now. People age: a year passes every 30 days (`growth.yearDays` in `data/town.json`).
 
 ## 4. Citizens
 
@@ -33,6 +33,11 @@ Each citizen has: name, age, personality traits, family ties, household, job, ho
 Daily decision order: eat if hungry, then work, then trade, then rest. Decisions use simple priority rules (utility scoring), not scripts.
 
 Roughly 40 workers plus dependents. Some people can be unemployed, which gives the world room to change.
+
+### A growing town
+
+- The town starts with about 100 people and grows by its own rules (`sim/growth.ts`): everyone ages a year each in-game year; married couples have children (less often when the household is struggling); the old die, more likely the older they are; and single young adults marry someone from another household who is not close kin.
+- A newly married couple moves into the home of whichever of them lives alone. Otherwise they live with family while builders put up a new house on a free plot by a street (inside the wall if there is room), a share of the work each day, paid for by the couple. When it is finished they become a household of their own.
 
 ### Families and households
 
