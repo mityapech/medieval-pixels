@@ -66,6 +66,7 @@ function buy(world: World, data: GameData, buyer: Citizen, seller: Citizen, good
   tally.tax += marketTax(world, data, seller, qty * price);
   moveGoods(seller, buyer, good, qty, price);
   seller.today.sold[good] = (seller.today.sold[good] ?? 0) + qty;
+  seller.today.revenue = (seller.today.revenue ?? 0) + qty * price;
   world.meetings.push([buyer.id, seller.id]);
   const s = (tally.trades[good] ??= { coins: 0, qty: 0 });
   s.coins += qty * price;

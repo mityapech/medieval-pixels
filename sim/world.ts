@@ -2,6 +2,7 @@
 import { foodTarget } from './agent';
 import { totalCoins } from './coins';
 import { initialBuildings } from './construction';
+import { initialProperty } from './property';
 import { generateLand } from './land';
 import type { GameData } from './data';
 import { isWorkingAge } from './family';
@@ -21,7 +22,9 @@ export function createWorld(data: GameData, seed = 1): World {
     households: [],
     land: { width: 0, height: 0, terrain: [], roads: [], boardwalks: [], walls: [], gates: [], docks: [], river: false, places: [] },
     buildings: {},
-    newHomes: [],
+    property: {},
+    projects: [],
+    waiting: [],
     batches: new Map(),
     nextBatchId: 1,
     ledger: [],
@@ -98,6 +101,7 @@ export function createWorld(data: GameData, seed = 1): World {
   // Where everyone lives and works. Uses its own random stream, so it never changes the economy.
   world.land = generateLand(world, data);
   world.buildings = initialBuildings(world);
+  world.property = initialProperty(world, data);
   return world;
 }
 

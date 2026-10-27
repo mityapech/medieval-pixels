@@ -15,6 +15,7 @@ import { work } from './production';
 import { constructionDay } from './construction';
 import { growthDay, type GrowthNews } from './growth';
 import { healthDay, tavernEvening } from './health';
+import { propertyDay } from './property';
 import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
@@ -40,6 +41,7 @@ export function tick(world: World, data: GameData): DayReport {
   const tally = newTally();
   tradePhase(world, data, tally);
   familyEvents.push(...constructionDay(world, data, tally));
+  const property = propertyDay(world, data, tally, familyEvents);
   stockGranary(world, data);
   const { tax: hearth, alms } = authorityDay(world, data);
   familyEvents.push(...payServants(world, data));
@@ -95,6 +97,8 @@ export function tick(world: World, data: GameData): DayReport {
     fellIll: health.fellIll,
     tavernGoers,
     married: growth.married,
+    propertySales: property.sales,
+    rentPaid: property.rentPaid,
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,
     familyEvents,

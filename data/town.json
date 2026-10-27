@@ -66,6 +66,21 @@
     "visitAboveDays": 6,
     "visitChance": 0.5
   },
+  "property": {
+    "burgherShare": 0.08,
+    "ownHomeShare": 0.15,
+    "rentPerTileMeals": 0.08,
+    "siteFeeShare": 0.1,
+    "paybackDays": 60,
+    "sellWhenShortDays": 3,
+    "buyAboveDays": 20,
+    "markdownPerDay": 0.98,
+    "reviewEveryDays": 7,
+    "developAboveDays": 60,
+    "wageMeals": 2.5,
+    "rentStep": 1.05,
+    "plotPriceMeals": 30
+  },
   "construction": {
     "materials": { "wood": 2, "stone": 2, "nails": 4 },
     "repairBelow": 65,

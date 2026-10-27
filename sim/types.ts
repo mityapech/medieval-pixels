@@ -103,6 +103,33 @@ export interface TownConfig {
     marriagesPerSinglePerYear: number;
     marryAges: [number, number];
   };
+  property: {
+    /** Share of households (the richest) whose heads are burghers, owning the town's businesses and houses to let. */
+    burgherShare: number;
+    /** Share of households (the next richest) that own the house they live in. */
+    ownHomeShare: number;
+    /** A house's daily rent, in meals at current food prices, per tile of floor. */
+    rentPerTileMeals: number;
+    /** Share of a worker's daily sales paid to the owner of the site they work at. */
+    siteFeeShare: number;
+    /** A property is worth about this many days of what it earns. */
+    paybackDays: number;
+    /** An owner sells property when their household has less than this many days of food in coins. */
+    sellWhenShortDays: number;
+    /** Households with more than this many days of living costs to spare may buy property. */
+    buyAboveDays: number;
+    /** An unsold property's asking price falls by this factor each day. */
+    markdownPerDay: number;
+    reviewEveryDays: number;
+    /** A burgher develops when their savings cover this many days of living costs beyond the building cost. */
+    developAboveDays: number;
+    /** An employee's daily wage, in meals. */
+    wageMeals: number;
+    /** Landlords raise or lower rent by this factor as demand changes. */
+    rentStep: number;
+    /** The town sells an empty plot for this many meals. */
+    plotPriceMeals: number;
+  };
   /** Buildings wear down each day; their owners pay builders to repair them with these materials. */
   construction: {
     materials: Record<GoodId, number>;
@@ -260,6 +287,10 @@ export interface Citizen extends Account, Holder {
   speciality?: string;
   /** What this worker made today: one entry per recipe run. */
   workLog?: { recipe: string; qty: number }[];
+  /** Where this worker works (a place key); unset means their trade's first site. */
+  workplace?: string;
+  /** Employed by a business owner: what they make belongs to the employer, who pays them a daily wage. */
+  employer?: CitizenId;
   /** For servants: the household that employs them. */
   employerHousehold: HouseholdId | null;
   householdId: HouseholdId;
@@ -290,6 +321,8 @@ export interface Citizen extends Account, Holder {
     job?: string;
     /** Spent the evening at the tavern. */
     tavern?: boolean;
+    /** Coins taken from sales today. */
+    revenue?: number;
   };
   /** Coins at the start of each of the last days, used for job decisions. */
   coinHistory: number[];
@@ -370,6 +403,35 @@ export interface Land {
   places: Place[];
 }
 
+/** Who owns a building or site, its record of sales, and what it earns. Keyed by place key. */
+export interface Property {
+  /** null: the town (market square, church, granary, school, infirmary). */
+  owner: CitizenId | null;
+  kind: 'home' | 'business' | 'town';
+  /** Every change of hands: who sold, who bought, for how much, when. The first entry is the founding grant. */
+  deeds: { day: number; from: CitizenId | null; to: CitizenId | null; price: number }[];
+  /** Homes: rent per day asked of the household living there (0 for one its owner lives in). */
+  rent: number;
+  /** Homes: rent the tenants could not pay (owed to the owner). */
+  arrears: number;
+  /** Businesses: the trade worked there, its name, and the speciality it is known for. */
+  trade?: Trade;
+  name?: string;
+  niche?: string;
+  /** Up for sale at this asking price, since this day. */
+  forSale?: { asking: number; since: number };
+}
+
+/** Something a burgher is having built: a house to let or a new business, paid for day by day. */
+export interface Project {
+  key: string;
+  owner: CitizenId;
+  kind: 'home' | 'business';
+  trade?: Trade;
+  progress: number;
+  days: number;
+}
+
 export interface ActiveEvent {
   id: string;
   name: string;
@@ -443,6 +505,10 @@ export interface DayReport {
   /** People who spent the evening at the tavern. */
   tavernGoers: number;
   married: string[];
+  /** Sales of property today: what, who to whom, and the price. */
+  propertySales: string[];
+  /** Rent and site fees paid today. */
+  rentPaid: number;
   jobChanges: { id: CitizenId; name: string; from: Trade | null; to: Trade | null; reason: string }[];
   /** Deaths, new heads, children moving to kin: family events worth printing. */
   familyEvents: string[];
@@ -468,8 +534,12 @@ export interface World {
   households: Household[];
   /** Terrain, roads and buildings, generated from the seed (see sim/land.ts). */
   land: Land;
-  /** New houses being built for married couples (see sim/growth.ts). */
-  newHomes: { key: string; a: CitizenId; b: CitizenId; progress: number }[];
+  /** Who owns every building and site (see sim/property.ts). */
+  property: Record<string, Property>;
+  /** Buildings burghers are having built. */
+  projects: Project[];
+  /** Married couples still living apart, waiting for a house to rent. */
+  waiting: { a: CitizenId; b: CitizenId }[];
   /** Condition of each building (0 ruined, 100 new), by place key. See sim/construction.ts. */
   buildings: Record<string, { condition: number }>;
   treasury: Account;

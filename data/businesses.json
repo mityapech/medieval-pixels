@@ -1,0 +1,19 @@
+{
+  "_comment": "How burghers name and specialise their businesses. {family} is the owner's family name, {first} their first name.",
+  "kinds": {
+    "baker": { "noun": ["Bakery", "Bakehouse", "Ovens"], "niches": { "bread": "bake_bread", "pies": "bake_pie", "tarts": "bake_tart" } },
+    "innkeeper": { "noun": ["Tavern", "Alehouse", "Inn"], "niches": { "ale house": "brew_ale" } },
+    "blacksmith": { "noun": ["Smithy", "Forge", "Ironworks"], "niches": { "toolmaking": "forge_hoe", "axes": "forge_axe", "nails and fittings": "make_nails" } },
+    "farmer": { "noun": ["Farm", "Holding", "Acres"], "niches": { "wheat": "grow_wheat", "market garden": "grow_vegetables", "orchard": "grow_fruit" } },
+    "lumberjack": { "noun": ["Timber Yard", "Woods"], "niches": { "timber": "chop_wood" } },
+    "miner": { "noun": ["Quarry", "Diggings"], "niches": { "stone": "quarry_stone", "iron": "mine_ore" } },
+    "forager": { "noun": ["Gatherers", "Wildwood"], "niches": { "berries": "pick_berries", "mushrooms": "gather_mushrooms", "herbs": "gather_herbs" } },
+    "fisherman": { "noun": ["Fishery", "Boats"], "niches": { "lake fish": "catch_fish" } },
+    "builder": { "noun": ["Builders", "Yard"], "niches": { "building": "" } },
+    "merchant": { "noun": ["Trading House", "Row"], "niches": { "trade": "" } }
+  },
+  "patterns": ["{family}'s {noun}", "{family} & Sons {noun}", "The {adjective} {animal}", "{first}'s {noun}", "The {adjective} {noun}"],
+  "tavernPatterns": ["The {adjective} {animal}", "The {animal} and {animal2}", "The {adjective} {animal}"],
+  "adjectives": ["Golden", "Old", "Crooked", "Red", "Merry", "Silver", "Laughing", "Green", "Black", "White", "Lucky", "Honest"],
+  "animals": ["Hart", "Boar", "Swan", "Fox", "Stag", "Raven", "Bear", "Hare", "Pike", "Owl", "Bull", "Goose"]
+}

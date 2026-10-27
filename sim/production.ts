@@ -2,6 +2,7 @@
 import { dailyLivingCost, observePrice, recipesOf, seenPrice, trait } from './agent';
 import type { GameData } from './data';
 import { recipeOutputMult } from './events';
+import { nicheBonus } from './property';
 import { remember } from './memory';
 import { addLot, averageCost, makeBatch, stockOf, takeGoods } from './inventory';
 import { random, roundRandom } from './rng';
@@ -58,7 +59,8 @@ export function rankRecipes(world: World, data: GameData, c: Citizen, needInputs
   for (const r of recipesOf(data, c)) {
     if (Object.entries(r.outputs).every(([g]) => stockOf(c, g) >= outputTarget(data, r, g))) continue;
     if (needInputs && Object.entries(r.inputs).some(([g, q]) => stockOf(c, g) < q)) continue;
-    const p = expectedProfit(data, c, r, 0.85 + 0.3 * random(world), recipeOutputMult(world, data, r.id));
+    // A site's speciality makes its recipe a little more attractive.
+    const p = expectedProfit(data, c, r, 0.85 + 0.3 * random(world), recipeOutputMult(world, data, r.id)) * nicheBonus(world, c, r.id);
     if (p > 0) scored.push({ r, p });
   }
   return scored.sort((a, b) => b.p - a.p).map((s) => s.r);
@@ -103,10 +105,13 @@ export function runRecipe(world: World, data: GameData, c: Citizen, r: RecipeDef
     const batch = makeBatch(world, g, qty, c, r.id, inputs);
     const def = data.goods.get(g)!;
     const unitCost = cost / qty;
+    // An employee's work belongs to the business that pays them (the batch still records who made it).
+    const holder = c.employer !== undefined && world.citizens[c.employer]!.alive ? world.citizens[c.employer]! : c;
+    if (holder !== c) holder.prices[g] ??= ownPrice(data, c, g);
     if (def.kind === 'tool') {
-      for (let i = 0; i < qty; i++) addLot(c, { batch: batch.id, good: g, qty: 1, unitCost, durability: def.durability! });
+      for (let i = 0; i < qty; i++) addLot(holder, { batch: batch.id, good: g, qty: 1, unitCost, durability: def.durability! });
     } else {
-      addLot(c, { batch: batch.id, good: g, qty, unitCost });
+      addLot(holder, { batch: batch.id, good: g, qty, unitCost });
     }
     if (c.prices[g] === undefined) c.prices[g] = ownPrice(data, c, g);
     if (!c.seen[g]) observePrice(data, c, g, c.prices[g]!);

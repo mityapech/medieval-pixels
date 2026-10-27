@@ -82,6 +82,7 @@ function passEstate(world: World, dead: Citizen, heir: Citizen): void {
 }
 
 export function takeUpTrade(data: GameData, c: Citizen, trade: Trade | null): void {
+  if (c.trade !== trade) { c.workplace = undefined; c.employer = undefined; }
   c.trade = trade;
   c.speciality = undefined; // a new merchant picks the speciality the town lacks
   if (!trade) return;

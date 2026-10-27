@@ -170,7 +170,7 @@ export class Life {
   private destOf(c: Citizen, task: Task): string {
     const home = `home:${c.householdId}`;
     switch (task.where) {
-      case 'work': return c.trade ? `work:${c.trade}` : home;
+      case 'work': return c.trade ? (c.workplace && this.places.has(c.workplace) ? c.workplace : `work:${c.trade}`) : home;
       case 'home': return home;
       case 'employer': return c.employerHousehold !== null ? `home:${c.employerHousehold}` : home;
       case 'market': case 'church': case 'granary': case 'school': case 'infirmary': return this.places.has(task.where) ? task.where : 'market';
