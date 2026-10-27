@@ -1,0 +1,31 @@
+{
+  "events": [
+    {
+      "id": "crop_failure", "name": "Crop failure", "chance": 0.012, "durationDays": [10, 20],
+      "recipeOutput": { "grow_wheat": 0.3, "grow_vegetables": 0.4, "grow_fruit": 0.4 },
+      "neighbourPrice": { "wheat": 1.25, "vegetables": 1.2, "fruit": 1.2 }
+    },
+    {
+      "id": "bumper_harvest", "name": "Bumper harvest", "chance": 0.01, "durationDays": [5, 10],
+      "recipeOutput": { "grow_wheat": 1.5, "grow_vegetables": 1.5, "grow_fruit": 1.5 }
+    },
+    {
+      "id": "bandits", "name": "Bandits on the roads", "chance": 0.01, "durationDays": [5, 15],
+      "roadCost": 3, "guardMitigation": 0.15
+    },
+    {
+      "id": "mine_collapse", "name": "Mine collapse", "chance": 0.008, "durationDays": [7, 14],
+      "recipeOutput": { "mine_ore": 0.2, "quarry_stone": 0.5 },
+      "neighbourPrice": { "iron_ore": 1.1 }
+    },
+    {
+      "id": "cold_spell", "name": "Harsh cold spell", "chance": 0.01, "durationDays": [5, 10],
+      "householdNeed": { "wood": 2 },
+      "neighbourPrice": { "wood": 1.15 }
+    },
+    {
+      "id": "house_fire", "name": "House fire", "chance": 0.006, "durationDays": [1, 1],
+      "householdLoss": 0.7, "guardMitigation": 0.2
+    }
+  ]
+}

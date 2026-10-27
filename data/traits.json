@@ -1,0 +1,12 @@
+{
+  "traits": [
+    { "id": "hardworking", "outputMult": 1.25 },
+    { "id": "lazy",        "outputMult": 0.8 },
+    { "id": "greedy",      "priceStepMult": 1.5, "marginBonus": 0.1 },
+    { "id": "thrifty",     "extraVisits": 2, "extraFoodDays": 1 },
+    { "id": "stubborn",    "jobChangeMult": 0 },
+    { "id": "restless",    "jobChangeMult": 2 }
+  ],
+  "firstNames": ["Ada","Agnes","Alan","Alice","Aldous","Amice","Avelina","Baldwin","Bartholomew","Beatrice","Benedict","Bennet","Cecily","Clement","Constance","Denis","Edith","Edmund","Elias","Emma","Eudo","Felice","Geoffrey","Gilbert","Godfrey","Hawise","Helewise","Henry","Hugh","Isabel","Ivo","Joan","John","Juliana","Lettice","Mabel","Margery","Matilda","Maud","Nicholas","Odo","Petronilla","Philippa","Ralph","Reginald","Richard","Robert","Roger","Rose","Sabina","Simon","Sybil","Thomas","Walter","William","Wymarc"],
+  "familyNames": ["Ashby","Barker","Brewer","Carter","Cooper","Dyer","Fletcher","Fowler","Hayward","Hill","Mason","Miller","Page","Reeve","Sawyer","Shepherd","Thatcher","Turner","Wainwright","Webb","Wood","Wright","Atwell","Bywater","Fenn","Gale","Holt","Lowe","Marsh","Ridley","Stone","Thorne","Underhill","Vane","Warde","Yates","Ford","Croft","Dale","Brook"]
+}

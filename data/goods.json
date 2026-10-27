@@ -1,0 +1,37 @@
+{
+  "goods": [
+    { "id": "wheat",      "name": "wheat",       "kind": "crop",     "basePrice": 5,  "weight": 1 },
+    { "id": "vegetables", "name": "vegetables",  "kind": "crop",     "basePrice": 4,  "weight": 1, "nutrition": 1, "appeal": 0.6 },
+    { "id": "fruit",      "name": "fruit",       "kind": "crop",     "basePrice": 5,  "weight": 1, "nutrition": 1, "appeal": 0.7 },
+    { "id": "bread",      "name": "bread",       "kind": "food",     "basePrice": 5,  "weight": 1, "nutrition": 1, "appeal": 1.0 },
+    { "id": "pie",        "name": "vegetable pie", "kind": "food",   "basePrice": 7,  "weight": 1, "nutrition": 1, "appeal": 1.15 },
+    { "id": "tart",       "name": "fruit tart",  "kind": "food",     "basePrice": 8,  "weight": 1, "nutrition": 1, "appeal": 1.3 },
+    { "id": "wood",       "name": "wood",        "kind": "material", "basePrice": 4,  "weight": 2 },
+    { "id": "stone",      "name": "stone",       "kind": "material", "basePrice": 4,  "weight": 3 },
+    { "id": "iron_ore",   "name": "iron ore",    "kind": "material", "basePrice": 5,  "weight": 3 },
+    { "id": "iron_ingot", "name": "iron ingot",  "kind": "material", "basePrice": 16, "weight": 2 },
+    { "id": "nails",      "name": "nails and fittings", "kind": "material", "basePrice": 3, "weight": 0.2 },
+    { "id": "hoe",        "name": "hoe",         "kind": "tool",     "basePrice": 40, "weight": 3, "durability": 25 },
+    { "id": "axe",        "name": "axe",         "kind": "tool",     "basePrice": 40, "weight": 3, "durability": 25 },
+    { "id": "pickaxe",    "name": "pickaxe",     "kind": "tool",     "basePrice": 40, "weight": 3, "durability": 25 }
+  ],
+  "recipes": [
+    { "id": "grow_wheat",      "trade": "farmer",     "inputs": {}, "outputs": { "wheat": 10 },      "tool": "hoe",     "wear": 1, "handFactor": 0.4 },
+    { "id": "grow_vegetables", "trade": "farmer",     "inputs": {}, "outputs": { "vegetables": 8 }, "tool": "hoe",     "wear": 1, "handFactor": 0.4 },
+    { "id": "grow_fruit",      "trade": "farmer",     "inputs": {}, "outputs": { "fruit": 6 },      "tool": "hoe",     "wear": 1, "handFactor": 0.4 },
+
+    { "id": "bake_bread",      "trade": "baker",      "inputs": { "wheat": 2, "wood": 1 },              "outputs": { "bread": 5 } },
+    { "id": "bake_pie",        "trade": "baker",      "inputs": { "vegetables": 2, "wheat": 1, "wood": 1 }, "outputs": { "pie": 5 } },
+    { "id": "bake_tart",       "trade": "baker",      "inputs": { "fruit": 2, "wheat": 1, "wood": 1 },     "outputs": { "tart": 5 } },
+
+    { "id": "chop_wood",       "trade": "laborer",    "inputs": {}, "outputs": { "wood": 6 },     "tool": "axe",     "wear": 1, "handFactor": 0.25 },
+    { "id": "quarry_stone",    "trade": "laborer",    "inputs": {}, "outputs": { "stone": 4 },    "tool": "pickaxe", "wear": 1, "handFactor": 0.25 },
+    { "id": "mine_ore",        "trade": "laborer",    "inputs": {}, "outputs": { "iron_ore": 4 }, "tool": "pickaxe", "wear": 1, "handFactor": 0.25 },
+
+    { "id": "smelt_iron",      "trade": "blacksmith", "inputs": { "iron_ore": 2, "wood": 1 },   "outputs": { "iron_ingot": 1 } },
+    { "id": "forge_hoe",       "trade": "blacksmith", "inputs": { "iron_ingot": 1, "wood": 1 }, "outputs": { "hoe": 1 } },
+    { "id": "forge_axe",       "trade": "blacksmith", "inputs": { "iron_ingot": 1, "wood": 1 }, "outputs": { "axe": 1 } },
+    { "id": "forge_pickaxe",   "trade": "blacksmith", "inputs": { "iron_ingot": 1, "wood": 1 }, "outputs": { "pickaxe": 1 } },
+    { "id": "make_nails",      "trade": "blacksmith", "inputs": { "iron_ingot": 1 },            "outputs": { "nails": 10 } }
+  ]
+}
