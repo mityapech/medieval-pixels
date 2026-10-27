@@ -1,0 +1,18 @@
+{
+  "_comment": "Maps names used by render/ to sprite names in a future atlas. Missing sprites draw as coloured placeholder squares with labels.",
+  "places": {
+    "market": "market_square_01",
+    "church": "church_01",
+    "granary": "granary_01",
+    "fields": "fields_wheat_01",
+    "woods": "woods_quarry_01",
+    "bakery": "building_bakery_01",
+    "smithy": "building_smithy_01",
+    "merchants": "market_stalls_01",
+    "house": "house_small_01"
+  },
+  "people": {
+    "citizen": "person_01",
+    "observer": "person_observer_01"
+  }
+}

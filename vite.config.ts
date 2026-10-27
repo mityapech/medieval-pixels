@@ -3,8 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   build: {
+    target: 'es2022', // the town view uses top-level await
     rollupOptions: {
-      input: { stats: resolve(__dirname, 'stats.html') },
+      input: { town: resolve(__dirname, 'index.html'), stats: resolve(__dirname, 'stats.html') },
     },
   },
   test: {

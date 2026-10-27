@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Town View</title>
+    <link rel="stylesheet" href="/render/game/game.css" />
+  </head>
+  <body>
+    <div id="map" aria-label="Town map"></div>
+    <header class="bar">
+      <div class="clock"><b id="day">Day 1</b> <span id="time">06:00</span> <span id="phase" class="muted"></span></div>
+      <div class="speed" role="group" aria-label="Speed">
+        <button type="button" data-speed="0">Pause</button>
+        <button type="button" data-speed="1" title="1 day = 4 minutes">1×</button>
+        <button type="button" data-speed="10" title="1 day = 24 seconds">10×</button>
+        <button type="button" data-speed="60" title="1 day = 4 seconds">60×</button>
+      </div>
+      <a id="ledger" class="link" href="/stats.html">Town Ledger</a>
+    </header>
+    <aside class="panel money" aria-label="Market and money">
+      <h2>Market and money</h2>
+      <dl id="money"></dl>
+      <p id="events" class="muted"></p>
+    </aside>
+    <aside class="panel inspector" id="inspector" hidden aria-live="polite">
+      <button type="button" class="close" id="close" aria-label="Close">×</button>
+      <div id="inspect"></div>
+    </aside>
+    <section class="panel overheard" aria-label="Overheard nearby">
+      <h2>Overheard nearby</h2>
+      <ol id="log"></ol>
+    </section>
+    <p class="help">WASD or arrow keys to walk · click anyone or any building to inspect · + / − to zoom</p>
+    <script type="module" src="/render/game/main.ts"></script>
+  </body>
+</html>
