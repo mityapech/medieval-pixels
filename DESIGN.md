@@ -52,6 +52,18 @@ Roughly 40 workers plus dependents. Some people can be unemployed, which gives t
 - Every conversation has a place (a house, the market, a workplace, the church), so a player nearby can overhear it.
 - Talk only reads the world and uses its own dice, so it can never change the economy.
 
+### Daily life
+
+- Each person's day is a sequence of visible tasks built from what really happened that day (`sim/routine.ts`, words and places in `data/routines.json`). A farmer who grew wheat ploughs, sows, weeds, scythes, binds sheaves and carts the harvest home; a baker grinds, kneads, fires the oven, bakes and sets out the bread; a smith stokes, heats, hammers, quenches and hafts. A worker with nothing to make does small jobs instead. The goods are still made by the recipe; the tasks show how.
+- Merchants open their stall, walk out to producers, unload imports at the docks or gate, load exports, and cry their wares in the market. Guards walk the wall and watch the gates, priests pray and visit the poor, servants fetch water and cook, elders sit by the door or watch the boats.
+- Children under 12 play outside (tag, hide and seek, hoops, skipping stones on the canal, racing to the docks), with the odd chore for the older ones.
+- In the town view people walk the streets at a walking pace (children run, elders are slower), use the bridges and gates, and work through their tasks at different spots. The task of anyone near the observer is shown over their head.
+
+### Merchants' specialities and adverts
+
+- Each merchant deals in one group of goods (grain and produce, baked goods, timber and stone, or iron and tools), chosen to fill the gap in town when they take up the trade. They buy, import and export only within it; an import order goes to the merchant who deals in that good if there is one.
+- Each day every merchant with stock posts a public advert of their best-stocked goods, with prices and where imports came from. It is cried in the market during market hours and posted on the notice board.
+
 ### Choosing and changing work
 
 - There are no hand-made rescues. People change work only by the same rules, for the same reasons.

@@ -8,6 +8,7 @@ import { random, roundRandom } from './rng';
 import type { Citizen, GoodId, Lot, RecipeDef, World } from './types';
 
 export function work(world: World, data: GameData, c: Citizen): void {
+  c.workLog = [];
   if (!c.alive || !c.trade) return;
   const runs = data.town.trades[c.trade].batchesPerDay;
   for (let i = 0; i < runs; i++) {
@@ -97,6 +98,7 @@ export function runRecipe(world: World, data: GameData, c: Citizen, r: RecipeDef
   const mult = factor * trait(data, c, 'outputMult') * recipeOutputMult(world, data, r.id);
   for (const [g, q] of Object.entries(r.outputs)) {
     const qty = roundRandom(world, q * mult);
+    c.workLog?.push({ recipe: r.id, qty: Math.max(0, qty) });
     if (qty <= 0) continue;
     const batch = makeBatch(world, g, qty, c, r.id, inputs);
     const def = data.goods.get(g)!;

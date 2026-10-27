@@ -83,6 +83,7 @@ function passEstate(world: World, dead: Citizen, heir: Citizen): void {
 
 export function takeUpTrade(data: GameData, c: Citizen, trade: Trade | null): void {
   c.trade = trade;
+  c.speciality = undefined; // a new merchant picks the speciality the town lacks
   if (!trade) return;
   for (const r of data.recipesByTrade[trade]) {
     for (const g of Object.keys(r.outputs)) c.prices[g] ??= c.seen[g]?.avg ?? data.goods.get(g)!.basePrice;

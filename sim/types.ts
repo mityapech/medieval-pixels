@@ -214,6 +214,10 @@ export interface Citizen extends Account, Holder {
   trade: Trade | null;
   /** A paid post: guard or priest with the town authority, or servant in a household. */
   office: Office | null;
+  /** For merchants: the group of goods they deal in (see sim/specialities.ts). */
+  speciality?: string;
+  /** What this worker made today: one entry per recipe run. */
+  workLog?: { recipe: string; qty: number }[];
   /** For servants: the household that employs them. */
   employerHousehold: HouseholdId | null;
   householdId: HouseholdId;
@@ -234,6 +238,10 @@ export interface Citizen extends Account, Holder {
     offered: Record<GoodId, number>;
     sold: Record<GoodId, number>;
     missed: Record<GoodId, number>;
+    /** Merchants: goods brought in from or sent out to other towns today, and producers visited. */
+    imported?: Record<GoodId, number>;
+    exported?: Record<GoodId, number>;
+    visited?: number;
   };
   /** Coins at the start of each of the last days, used for job decisions. */
   coinHistory: number[];
@@ -342,6 +350,15 @@ export interface EventDef {
   guardMitigation?: number;
 }
 
+/** A merchant's public advert: cried in the market and posted on the town notice board. */
+export interface Advert {
+  merchant: CitizenId;
+  name: string;
+  speciality: string;
+  text: string;
+  goods: { good: GoodId; qty: number; price: number; origin?: string }[];
+}
+
 export interface DayReport {
   day: number;
   /** Average price actually paid per good today (absent if nothing traded). */
@@ -377,6 +394,7 @@ export interface DayReport {
   /** Units made in town today, by good (imports not included). */
   produced: Record<GoodId, number>;
   conversations: Conversation[];
+  adverts: Advert[];
   households: number;
   ages: { children: number; adults: number; elders: number };
   /** Coins per living household: median, mean, and the shares held by the richest 3 and the poorer half. */

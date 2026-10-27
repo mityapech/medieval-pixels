@@ -13,6 +13,7 @@ import { bestExport, bestImport } from './neighbours';
 import { granaryPrice, marketTax, sellFromGranary } from './authority';
 import { rankRecipes, workingTool } from './production';
 import { random, shuffle } from './rng';
+import { dealsIn } from './specialities';
 import type { Citizen, GoodId, Neighbour, World } from './types';
 
 /** Everything the trade phase counts for the day's report. */
@@ -228,6 +229,7 @@ function merchantRounds(world: World, data: GameData, m: Citizen, tally: DayTall
   const budget = () => Math.max(0, (m.coins - reserve) * pricing.merchantRiskShare);
   const producers = shuffle(world, world.citizens.filter((c) => c.alive && c.trade && c.trade !== 'merchant'));
   const visits = (cfg.visitsPerDay ?? 0) + traitSum(data, m, 'extraVisits');
+  m.today.visited = Math.min(visits, producers.length);
   for (const seller of producers.slice(0, visits)) {
     for (const good of Object.keys(seller.prices)) {
       const avail = sellableQty(world, data, seller, good);
@@ -239,7 +241,7 @@ function merchantRounds(world: World, data: GameData, m: Citizen, tally: DayTall
       const cheapHere = wanted && known && known.count >= 3 && price <= known.avg * pricing.merchantBuyBelow;
       const abroad = shortHere(world, data, good) ? undefined : bestExport(world, data, good, 1);
       const worthExporting = abroad && abroad.unitPrice >= price * (1 + data.town.neighbours.importMargin);
-      if (cheapHere || worthExporting) {
+      if (dealsIn(world, m, good) && (cheapHere || worthExporting)) {
         const n = Math.min(avail, Math.floor(budget() / price), Math.floor(room() / data.goods.get(good)!.weight));
         if (n > 0) {
           const fresh = stockOf(m, good) === 0;
@@ -262,9 +264,13 @@ function merchantRounds(world: World, data: GameData, m: Citizen, tally: DayTall
 function importOrder(
   world: World, data: GameData, buyer: Citizen, good: GoodId, n: number, price: number, from: Neighbour, unitCost: number, tally: DayTally,
 ): number {
-  const merchants = world.citizens.filter((c) => c.alive && c.trade === 'merchant' && c !== buyer);
+  // The merchant who deals in this good takes the order if there is one; otherwise any merchant will.
+  const all = world.citizens.filter((c) => c.alive && c.trade === 'merchant' && c !== buyer);
+  const specialists = all.filter((c) => dealsIn(world, c, good));
+  const merchants = specialists.length ? specialists : all;
   const m = merchants.length ? merchants[Math.floor(random(world) * merchants.length)]! : undefined;
   if (m) {
+    note(m, 'imported', good, n);
     transfer(world, buyer, m, n * price, `order of ${n} ${good} from ${from.name}`);
     tally.tax += marketTax(world, data, m, n * price);
     transfer(world, m, from, n * unitCost, `import ${n} ${good}`);
@@ -307,8 +313,11 @@ function consignExports(world: World, data: GameData, tally: DayTally): void {
         const toProducer = Math.floor(deal.unitPrice * (1 - fee));
         const floor = (averageCost(p, good) ?? 0) * data.town.pricing.minMargin;
         if (toProducer < Math.max(1, floor)) continue;
-        const m = merchants.length ? merchants[Math.floor(random(world) * merchants.length)]! : undefined;
+        const specialists = merchants.filter((c) => dealsIn(world, c, good));
+        const pool = specialists.length ? specialists : merchants;
+        const m = pool.length ? pool[Math.floor(random(world) * pool.length)]! : undefined;
         if (m) {
+          note(m, 'exported', good, qty);
           transfer(world, deal.to, m, qty * deal.unitPrice, `export ${qty} ${good}`);
           transfer(world, m, p, qty * toProducer, `consigned ${qty} ${good}`);
         } else {
@@ -336,6 +345,7 @@ function exportGoods(world: World, data: GameData, m: Citizen, tally: DayTally):
     const cost = averageCost(m, good) ?? Infinity;
     if (!deal || deal.unitPrice < Math.max(cost * data.town.pricing.minMargin, askPrice(m, good))) continue;
     transfer(world, deal.to, m, qty * deal.unitPrice, `export ${qty} ${good}`);
+    note(m, 'exported', good, qty);
     takeGoods(m, good, qty);
     tally.exports += qty * deal.unitPrice;
   }
@@ -351,13 +361,14 @@ function importGoods(
   const merchants = world.citizens.filter((c) => c.alive && c.trade === 'merchant').length;
   for (const [key, short] of Object.entries(world.unmet).sort((a, b) => b[1] - a[1])) {
     const good = key === FOOD ? cheapestFoodImport(world, data) : key;
-    if (!good) continue;
+    if (!good || !dealsIn(world, m, good)) continue;
     const offer = bestImport(world, data, good);
     if (!offer) continue;
     const want = Math.ceil(short / merchants) - stockOf(m, good);
     const qty = Math.min(want, Math.floor(room() / data.goods.get(good)!.weight), Math.floor(budget() / offer.unitCost));
     if (qty <= 0) continue;
     transfer(world, m, offer.from, qty * offer.unitCost, `import ${qty} ${good}`);
+    note(m, 'imported', good, qty);
     const batch = makeImportBatch(world, good, qty, offer.from.name);
     const def = data.goods.get(good)!;
     if (def.kind === 'tool') {
@@ -486,4 +497,10 @@ function buyComforts(world: World, data: GameData, head: Citizen, tally: DayTall
     if (got > 0) takeGoods(payer, good, got);
   }
   return coinsBefore - payer.coins;
+}
+
+/** Keeps a merchant's record of what went in and out of town today (for their day's tasks and adverts). */
+function note(m: Citizen, kind: 'imported' | 'exported', good: GoodId, qty: number): void {
+  const rec = (m.today[kind] ??= {});
+  rec[good] = (rec[good] ?? 0) + qty;
 }

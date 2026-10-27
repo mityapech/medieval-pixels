@@ -12,6 +12,7 @@ import { findWork, reconsiderWork } from './jobs';
 import { adjustPrices, newTally, tradePhase } from './market';
 import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
+import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
 import { TRADES } from './types';
@@ -84,6 +85,7 @@ export function tick(world: World, data: GameData): DayReport {
     familyEvents,
     produced,
     conversations,
+    adverts: advertise(world, data),
     ...townStatistics(world, data),
   };
   world.reports.push(report);

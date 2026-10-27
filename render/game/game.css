@@ -83,7 +83,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .tabs { display: flex; gap: 4px; margin-bottom: 6px; }
 .tabs button { border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-weight: 600; padding: 2px 8px; border-radius: 6px; cursor: pointer; }
 .tabs button[aria-selected='true'] { background: var(--border); color: var(--text-primary); }
-.overheard ol#news li { font-size: 12px; }
+.overheard ol#news li, .overheard ol#notices li { font-size: 12px; }
 .trace { margin: 4px 0 0; padding-left: 0; list-style: none; font-size: 12px; }
 .trace li { padding-left: calc(var(--depth) * 14px); }
 .people-filter { width: 100%; margin: 6px 0; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; }

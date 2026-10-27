@@ -4,16 +4,18 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
-  cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Citizen, type Conversation,
-  type DayReport,
+  cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
+  type Conversation, type DayReport,
 } from '../../sim/index';
-import { TILE, WORKPLACE, centre, layoutTown, spotIn, type Place } from './layout';
+import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
+import { Life, hash } from './life';
 
 const data = loadData();
 const params = new URLSearchParams(location.search);
 const seed = Math.max(1, Number(params.get('seed')) || 1);
 const world = createWorld(data, seed);
 const places = layoutTown(world);
+const life = new Life(world, data, places);
 const MAP_W = world.land.width;
 const MAP_H = world.land.height;
 
@@ -61,8 +63,9 @@ app.stage.addChild(scene);
 const ground = new Graphics();
 const placeLayer = new Container();
 const peopleLayer = new Container();
+const tagLayer = new Container();
 const bubbleLayer = new Container();
-scene.addChild(ground, placeLayer, peopleLayer, bubbleLayer);
+scene.addChild(ground, placeLayer, peopleLayer, tagLayer, bubbleLayer);
 
 // The land, in an autumn palette: golden grass, red and orange woods, grey rock, the lake and canal, dirt roads,
 // plank boardwalks and bridges inside the wall, docks on the lake, and the stone wall with its gates.
@@ -130,7 +133,7 @@ for (const p of places.values()) {
 }
 
 // People: small squares, coloured by occupation.
-interface Walker { c: Citizen; g: Graphics; x: number; y: number }
+interface Walker { c: Citizen; g: Graphics; x: number; y: number; tag?: Text }
 const walkers = new Map<number, Walker>();
 for (const c of world.citizens) {
   const home = centre(places.get(`home:${c.householdId}`)!);
@@ -140,6 +143,23 @@ for (const c of world.citizens) {
   g.on('pointertap', (e) => { e.stopPropagation(); inspectCitizen(c); });
   peopleLayer.addChild(g);
   walkers.set(c.id, { c, g, x: home.x, y: home.y });
+}
+
+/** Walking pace: about one and a half tiles a second at 1x. */
+const WALK_PX_PER_MS = (1.5 * TILE) / 1000;
+
+/** What someone is doing, shown over their head when they are near the observer. */
+function showTag(w: Walker, task: string | undefined): void {
+  const near = task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
+  if (!near) { if (w.tag) w.tag.visible = false; return; }
+  if (!w.tag) {
+    w.tag = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3 } }, resolution: 3 });
+    w.tag.anchor.set(0.5, 1);
+    tagLayer.addChild(w.tag);
+  }
+  if (w.tag.text !== task) w.tag.text = task!;
+  w.tag.visible = true;
+  w.tag.position.set(w.x, w.y - 8);
 }
 
 function drawWalker(w: Walker): void {
@@ -168,23 +188,19 @@ function placeFor(key: string): Place | undefined {
   return places.get(key);
 }
 
-function target(c: Citizen, t: number): { x: number; y: number } {
-  const home = placeFor(`home:${c.householdId}`)!;
+/** Where someone is heading now: the place, and the point in it. */
+function target(c: Citizen, t: number): { dest: string; x: number; y: number; mode: 'still' | 'play'; task?: string } {
+  const homeKey = `home:${c.householdId}`;
+  const home = placeFor(homeKey)!;
   const talking = talks.find((k) => k.c.participants.includes(c.id) && t >= k.start && t < k.start + 0.03);
-  if (talking) return spotIn(talking.place, c.id);
-  const p = phase(t);
-  if (p === 'night' || p === 'morning' || p === 'evening') return spotIn(home, c.id);
-  if (p === 'work') {
-    if (c.trade) return spotIn(placeFor(WORKPLACE[c.trade])!, c.id);
-    if (c.office === 'priest') return spotIn(placeFor('church')!, c.id);
-    if (c.office === 'guard') return spotIn(placeFor('market')!, c.id);
-    if (c.office === 'servant' && c.employerHousehold !== null) return spotIn(placeFor(`home:${c.employerHousehold}`)!, c.id);
-    return spotIn(home, c.id);
+  if (talking) return { dest: talking.place.key, ...spotIn(talking.place, c.id), mode: 'still', task: 'Talking' };
+  const act = life.activity(c, t);
+  if (act) return act;
+  // Market time: heads of households come to shop; everyone else is at home.
+  if (phase(t) === 'market' && householdOf(world, c).headId === c.id) {
+    return { dest: 'market', ...life.spot('market', c.id, world.day), mode: 'still', task: 'Shopping at the market' };
   }
-  // Market time: heads of households shop, sellers keep stalls, everyone else goes home.
-  const head = householdOf(world, c).headId === c.id;
-  if (head || c.trade || c.office === 'guard') return spotIn(placeFor('market')!, c.id);
-  return spotIn(home, c.id);
+  return { dest: homeKey, ...spotIn(home, c.id), mode: 'still', task: phase(t) === 'night' ? 'Asleep' : 'At home' };
 }
 
 // ---------- days ----------
@@ -202,10 +218,52 @@ function scheduleTalks(conversations: Conversation[]): void {
 
 function newDay(): void {
   const report = tick(world, data);
+  life.newDay();
   scheduleTalks(report.conversations);
+  scheduleAdverts(report);
   postNews(report);
   refreshMoney();
   if (selected !== null) inspectCitizen(world.citizens[selected]!);
+}
+
+// ---------- merchants' adverts: cried in the market, posted on the notice board ----------
+
+interface Cry { a: Advert; start: number; shown: boolean }
+let cries: Cry[] = [];
+
+function scheduleAdverts(r: DayReport): void {
+  // Each merchant cries their wares a few times through the market hours.
+  cries = r.adverts.flatMap((a, i) => [0, 1, 2].map((k) => ({ a, start: 0.56 + ((i * 0.031 + k * 0.061) % 0.18), shown: false })));
+  const board = document.getElementById('notices')!;
+  board.replaceChildren();
+  if (!r.adverts.length) {
+    const li = document.createElement('li');
+    li.textContent = 'No merchant has anything to cry today.';
+    board.append(li);
+  }
+  for (const a of r.adverts) {
+    const li = document.createElement('li');
+    const where = document.createElement('div');
+    where.className = 'where';
+    where.textContent = `${a.name}, ${a.speciality}`;
+    const text = document.createElement('div');
+    text.textContent = `"${a.text}"`;
+    const stock = document.createElement('div');
+    stock.className = 'muted';
+    stock.textContent = a.goods.map((g) => `${g.qty} ${data.goods.get(g.good)!.name} at ${g.price}${g.origin ? ` (from ${g.origin})` : ''}`).join(' · ');
+    li.append(where, text, stock);
+    board.append(li);
+  }
+}
+
+function cryWares(): void {
+  for (const k of cries) {
+    if (k.shown || clock < k.start) continue;
+    k.shown = true;
+    const w = walkers.get(k.a.merchant);
+    if (!w || Math.hypot(w.x - observer.x, w.y - observer.y) > HEARING) continue;
+    say(w.c, k.a.text, 0);
+  }
 }
 
 // ---------- speech bubbles and the overheard log ----------
@@ -282,17 +340,34 @@ app.ticker.add((t) => {
   observerG.position.set(observer.x, observer.y);
   hearingG.position.set(observer.x, observer.y);
 
-  // People walk towards where they want to be.
-  const walk = 0.14 * dt * Math.max(1, speed);
+  // People walk along the streets at a walking pace (children run, elders take their time), and once there
+  // they potter about their task; children at play run around.
+  const now = performance.now();
   for (const w of walkers.values()) {
-    if (!w.c.alive) { w.g.visible = false; continue; }
+    if (!w.c.alive) { w.g.visible = false; if (w.tag) w.tag.visible = false; continue; }
     const to = target(w.c, clock);
-    const dx = to.x - w.x;
-    const dy = to.y - w.y;
-    const d = Math.hypot(dx, dy);
-    if (d > walk) { w.x += (dx / d) * walk; w.y += (dy / d) * walk; } else { w.x = to.x; w.y = to.y; }
+    const pace = w.c.age < data.town.workingAge.adult ? 1.5 : w.c.age >= data.town.workingAge.elder ? 0.7 : 1;
+    const walk = WALK_PX_PER_MS * pace * dt * Math.max(1, Math.min(speed, 12));
+    let gx = to.x;
+    let gy = to.y;
+    const phaseOffset = hash(w.c.id, 3) * Math.PI * 2;
+    if (to.mode === 'play') {
+      // Running about in loops around their spot.
+      const r = TILE * (1 + hash(w.c.id, 5));
+      gx += Math.cos(now / 900 + phaseOffset) * r;
+      gy += Math.sin(now / 700 + phaseOffset) * r * 0.7;
+    } else {
+      gx += Math.sin(now / 2600 + phaseOffset) * 3;
+      gy += Math.cos(now / 3100 + phaseOffset) * 3;
+    }
+    const at = life.walk(w, to.dest, { x: gx, y: gy }, walk);
+    w.x = at.x;
+    w.y = at.y;
     drawWalker(w);
+    showTag(w, to.task);
   }
+
+  cryWares();
 
   // Conversations start at their time; only those within hearing of the observer are shown.
   for (const k of talks) {
@@ -301,8 +376,7 @@ app.ticker.add((t) => {
     const at = centre(k.place);
     if (Math.hypot(at.x - observer.x, at.y - observer.y) <= HEARING + Math.max(k.place.w, k.place.h) * TILE / 2) overhear(k);
   }
-  const now = performance.now();
-  bubbles = bubbles.filter((b) => {
+    bubbles = bubbles.filter((b) => {
     if (now > b.until) { b.box.destroy({ children: true }); return false; }
     const w = walkers.get(b.speaker)!;
     b.box.position.set(w.x - b.box.width / 2 + 6, w.y - b.box.height - 8);
@@ -400,14 +474,15 @@ function postNews(r: DayReport): void {
   while (news.children.length > 60) news.lastElementChild!.remove();
 }
 
-function showTab(which: 'log' | 'news'): void {
-  document.getElementById('log')!.hidden = which !== 'log';
-  document.getElementById('news')!.hidden = which !== 'news';
-  document.getElementById('tab-log')!.setAttribute('aria-selected', String(which === 'log'));
-  document.getElementById('tab-news')!.setAttribute('aria-selected', String(which === 'news'));
+function showTab(which: 'log' | 'news' | 'notices'): void {
+  for (const id of ['log', 'news', 'notices'] as const) {
+    document.getElementById(id)!.hidden = which !== id;
+    document.getElementById(`tab-${id}`)!.setAttribute('aria-selected', String(which === id));
+  }
 }
 document.getElementById('tab-log')!.addEventListener('click', () => showTab('log'));
 document.getElementById('tab-news')!.addEventListener('click', () => showTab('news'));
+document.getElementById('tab-notices')!.addEventListener('click', () => showTab('notices'));
 
 // ---------- inspector ----------
 
@@ -472,8 +547,16 @@ function inspectCitizen(c: Citizen): void {
       ['Household', `${hh.family} (${members.length} living)${hh.headId === c.id ? ', head' : ''}`],
       ['Coins', `${c.coins} (household ${purse})`],
       ['Worries', worries.join('; ') || 'none pressing'],
+      ['Now', target(c, clock).task ?? '–'],
     ]),
   );
+  const plan = life.planOf(c);
+  if (plan.length) {
+    body.append(h('h4', "Today's work"));
+    const ol = h('ol');
+    for (const step of plan) ol.append(h('li', step.task));
+    body.append(ol);
+  }
   const kin = kinOf(world, c);
   const dead = world.citizens.filter((k) => !k.alive && (k.id === c.spouseId || c.parentIds.includes(k.id) || k.parentIds.includes(c.id)));
   if (kin.length || dead.length) {
