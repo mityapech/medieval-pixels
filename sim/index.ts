@@ -5,7 +5,7 @@ export { tick, runDays } from './tick';
 export { transfer, totalCoins } from './coins';
 export { traceBatch } from './trace';
 export { converse } from './dialogue';
-export { dayPlan, employerOf, type Task } from './routine';
+export { dayPlan, employerOf, routineLength, type Task } from './routine';
 export { specialityOf } from './specialities';
 // Read-only helpers the renderer uses to describe people and places.
 export { cheapestMeal } from './agent';

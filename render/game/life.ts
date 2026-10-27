@@ -2,7 +2,7 @@
 // Each destination has a walking-distance map over the town (streets are quick, open ground slower, buildings and
 // the wall slow, water only by bridges and docks), so people follow the roads, cross by bridges and use the gates.
 // Schedules come from the simulation's day plans (sim/routine.ts): each step of a job is done in turn, at its place.
-import { dayPlan, type Citizen, type Place, type Task, type World } from '../../sim/index';
+import { dayPlan, routineLength, type Citizen, type Place, type Task, type World } from '../../sim/index';
 import type { GameData } from '../../sim/data';
 import { TILE } from './layout';
 
@@ -21,7 +21,14 @@ export interface Target {
   y: number;
   mode: 'still' | 'play';
   task?: string;
+  /** Which step of today's plan this is, how many there are, and how far through this step (0..1). */
+  step?: number;
+  steps?: number;
+  progress?: number;
 }
+
+/** Something made when a job's last step is done: shown rising from the worker. */
+export interface Made { good: string; qty: number }
 
 /** Walking pace: about one and a half tiles a second at 1x. */
 export const WALK_PX_PER_MS = (1.5 * TILE) / 1000;
@@ -51,6 +58,8 @@ export class Life {
   private readonly fields = new Map<string, Float32Array>();
   private readonly areas = new Map<string, number[]>();
   private plans = new Map<number, Task[]>();
+  /** For each worker, the plan step that finishes each of today's jobs, and what that job makes. */
+  private finishes = new Map<number, { step: number; made: Made }[]>();
 
   constructor(private readonly world: World, private readonly data: GameData, private readonly places: Map<string, Place>) {
     const { width: W, height: H, terrain, roads, walls, gates, docks } = world.land;
@@ -107,6 +116,24 @@ export class Life {
   /** Called each new day: everyone's plan for the day. */
   newDay(): void {
     this.plans = new Map(this.world.citizens.filter((c) => c.alive).map((c) => [c.id, dayPlan(this.world, this.data, c)]));
+    this.finishes = new Map();
+    for (const c of this.world.citizens) {
+      if (!c.alive || !c.workLog?.length) continue;
+      const out: { step: number; made: Made }[] = [];
+      let step = -1;
+      for (const run of c.workLog) {
+        step += routineLength(run.recipe);
+        const recipe = this.data.recipes.find((r) => r.id === run.recipe);
+        const good = recipe ? Object.keys(recipe.outputs)[0]! : '';
+        if (run.qty > 0) out.push({ step, made: { good, qty: run.qty } });
+      }
+      this.finishes.set(c.id, out);
+    }
+  }
+
+  /** What someone finished making as they moved on from step `from` (to step `to`, or past their last step). */
+  finishedBetween(c: Citizen, from: number, to: number): Made[] {
+    return (this.finishes.get(c.id) ?? []).filter((f) => f.step >= from && f.step < to).map((f) => f.made);
   }
 
   planOf(c: Citizen): Task[] {
@@ -125,7 +152,8 @@ export class Life {
       : 0.29 + hash(c.id, this.world.day, 1) * 0.04 + (child ? 0.02 : 0) + (elder ? 0.05 : 0);
     const end = child ? 0.72 : c.office || c.trade === 'merchant' ? 0.75 : !c.trade ? 0.7 : 0.55;
     if (t < start || t >= end) return undefined;
-    const step = Math.min(plan.length - 1, Math.floor(((t - start) / (end - start)) * plan.length));
+    const along = ((t - start) / (end - start)) * plan.length;
+    const step = Math.min(plan.length - 1, Math.floor(along));
     const task = plan[step]!;
     const area = this.destOf(c, task);
     const at = this.spot(area, c.id, step);
@@ -136,7 +164,7 @@ export class Life {
     const dest = this.places.has(area) ? area : area === 'lake' ? `boat:${tile}` : `tile:${tile}`;
     // Only running games are played on the run; watching the guards or skipping stones is done standing.
     const mode = child && /^(Playing|Chasing|Racing)/.test(task.task) ? 'play' : 'still';
-    return { task: task.task, dest, x: at.x, y: at.y, mode };
+    return { task: task.task, dest, x: at.x, y: at.y, mode, step, steps: plan.length, progress: Math.min(1, along - step) };
   }
 
   private destOf(c: Citizen, task: Task): string {

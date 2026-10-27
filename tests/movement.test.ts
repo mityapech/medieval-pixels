@@ -43,3 +43,27 @@ describe('movement', () => {
     expect(r.arrived).toBeGreaterThan(0.9);
   });
 });
+
+describe('work progress', () => {
+  it('reports progress through each step, and each finished batch exactly once at the end of its steps', () => {
+    const world = createWorld(data, 1);
+    tick(world, data);
+    const life = new Life(world, data, layoutTown(world));
+    life.newDay();
+    const worker = world.citizens.find((c) => c.alive && c.workLog && c.workLog.filter((r) => r.qty > 0).length >= 2 && c.trade !== 'merchant')!;
+    const made: string[] = [];
+    let last: number | undefined;
+    for (let t = 0.25; t <= 0.8; t += 0.0005) {
+      const a = life.activity(worker, t);
+      if (a) {
+        expect(a.progress!).toBeGreaterThanOrEqual(0);
+        expect(a.progress!).toBeLessThanOrEqual(1);
+      }
+      const now = a?.step ?? Number.POSITIVE_INFINITY;
+      if (last !== undefined && now > last) made.push(...life.finishedBetween(worker, last, now).map((m) => `${m.qty} ${m.good}`));
+      last = a?.step;
+    }
+    const expected = worker.workLog!.filter((r) => r.qty > 0).map((r) => `${r.qty} ${Object.keys(data.recipes.find((x) => x.id === r.recipe)!.outputs)[0]}`);
+    expect(made).toEqual(expected);
+  });
+});

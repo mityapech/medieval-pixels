@@ -150,7 +150,7 @@ function drawPlaces(): void {
 drawPlaces();
 
 // People: small squares, coloured by occupation.
-interface Walker extends Mover { g: Graphics; tag?: Text }
+interface Walker extends Mover { g: Graphics; tag?: Text; lastStep?: number }
 const walkers = new Map<number, Walker>();
 /** Adds a walker for anyone not yet on the map (everyone at the start, then newborns). */
 function addWalkers(): void {
@@ -184,7 +184,27 @@ function showTag(w: Walker, task: string | undefined): void {
 // In development, expose the people on the page so movement can be checked from the browser console.
 if (import.meta.env.DEV) (window as unknown as { townWalkers: typeof walkers }).townWalkers = walkers;
 
-function drawWalker(w: Walker): void {
+/** Finished goods floating up from a worker and fading, when they are near enough to see. */
+interface Floater { t: Text; start: number; x: number; y: number }
+let floaters: Floater[] = [];
+function floatUp(w: Walker, text: string): void {
+  if (Math.hypot(w.x - observer.x, w.y - observer.y) > HEARING * 2) return;
+  const t = new Text({ text, style: { fontFamily: MAP_FONT, fontSize: 11, fontWeight: 'bold', fill: 0xffe08a, stroke: { color: 0x1a1a19, width: 3, join: 'round' }, padding: 6 }, resolution: 3 });
+  t.anchor.set(0.5, 1);
+  bubbleLayer.addChild(t);
+  floaters.push({ t, start: performance.now(), x: w.x, y: w.y - 14 });
+}
+function animateFloaters(now: number): void {
+  floaters = floaters.filter((f) => {
+    const age = (now - f.start) / 1800;
+    if (age >= 1) { f.t.destroy(); return false; }
+    f.t.position.set(f.x, f.y - age * 26);
+    f.t.alpha = 1 - age * age;
+    return true;
+  });
+}
+
+function drawWalker(w: Walker, progress?: number): void {
   const colour = w.c.office ? JOB_COLOUR[w.c.office]! : w.c.trade ? JOB_COLOUR[w.c.trade]! : IDLE_COLOUR;
   const size = w.c.age < data.town.workingAge.adult ? 7 : 10;
   w.g.clear();
@@ -192,12 +212,18 @@ function drawWalker(w: Walker): void {
   if (life.onWater(w.x, w.y)) w.g.roundRect(-11, -4, 22, 11, 5).fill(0x6e4e2c).stroke({ width: 1.5, color: 0x3b2a18 });
   w.g.rect(-size / 2, -size / 2, size, size).fill(colour).stroke({ width: 1.5, color: 0x1a1a19 });
   if (selected === w.c.id) w.g.rect(-size / 2 - 3, -size / 2 - 3, size + 6, size + 6).stroke({ width: 2, color: 0xffffff });
+  if (progress !== undefined) {
+    // Progress through the current step, in the worker's colour.
+    w.g.roundRect(-10, size / 2 + 3, 20, 4, 2).fill({ color: 0x1a1a19, alpha: 0.7 });
+    w.g.roundRect(-10, size / 2 + 3, Math.max(2, 20 * progress), 4, 2).fill(colour);
+  }
   w.g.visible = w.c.alive;
   w.g.position.set(w.x, w.y);
 }
 
 // The observer stands in for the player until the player milestone: walk around and overhear people.
 const observer = centre(places.get('market')!);
+if (import.meta.env.DEV) (window as unknown as { townObserver: typeof observer }).townObserver = observer;
 const observerG = new Graphics();
 const hearingG = new Graphics().circle(0, 0, HEARING).fill({ color: 0xffffff, alpha: 0.07 }).stroke({ width: 1, color: 0xffffff, alpha: 0.35 });
 peopleLayer.addChild(hearingG, observerG);
@@ -389,10 +415,23 @@ app.ticker.add((t) => {
   const shownTags: { x: number; y: number; w: number }[] = [];
   const byNearness = [...walkers.values()].sort((a, b) => Math.hypot(a.x - observer.x, a.y - observer.y) - Math.hypot(b.x - observer.x, b.y - observer.y));
   for (const w of byNearness) {
-    drawWalker(w);
-    if (!w.c.alive) continue;
+    const to = w.c.alive ? target(w.c, clock) : undefined;
+    // A progress bar while someone is at work on a step (not while walking there).
+    const working = to?.progress !== undefined && w.settledAt === to.dest && to.task !== 'At home' ? to.progress : undefined;
+    drawWalker(w, working);
+    if (!w.c.alive || !to) continue;
+    // A job finished: what it made rises from the worker.
+    // (Follows the work schedule, not the moment: stopping for a chat does not end the day's work.)
+    const sched = life.activity(w.c, clock);
+    if (sched?.step !== undefined || w.lastStep !== undefined) {
+      const now = sched?.step ?? Number.POSITIVE_INFINITY;
+      if (w.lastStep !== undefined && now > w.lastStep) {
+        for (const made of life.finishedBetween(w.c, w.lastStep, now)) floatUp(w, `+${made.qty} ${data.goods.get(made.good)?.name ?? made.good}`);
+      }
+      w.lastStep = sched?.step;
+    }
     // Being at home or asleep needs no label.
-    const doing = target(w.c, clock).task;
+    const doing = to.task;
     const task = doing === 'At home' || doing === 'Asleep' ? undefined : doing;
     const width = (task?.length ?? 0) * 5;
     const clash = shownTags.some((t) => Math.abs(t.y - w.y) < 12 && Math.abs(t.x - w.x) < (t.w + width) / 2 + 4);
@@ -401,6 +440,7 @@ app.ticker.add((t) => {
   }
 
   cryWares();
+  animateFloaters(now);
 
   // Conversations start at their time; only those within hearing of the observer are shown.
   for (const k of talks) {

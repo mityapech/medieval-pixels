@@ -102,3 +102,8 @@ export function advertise(world: World, data: GameData): Advert[] {
   }
   return out;
 }
+
+/** How many visible steps a recipe's work takes. */
+export function routineLength(recipe: string): number {
+  return R.recipeSteps[recipe]?.length ?? 0;
+}
