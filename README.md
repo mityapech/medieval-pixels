@@ -1,4 +1,6 @@
-# Medieval town simulation
+# medieval-pixels
+
+A project game where the player is given the ultimate freedom in a super-open world set in a medieval pixel town.
 
 A simulated medieval town of about 60 people in families, with five trades, a market, a town authority,
 a church, random events and neighbouring towns. The rules are in [DESIGN.md](DESIGN.md).
