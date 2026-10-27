@@ -1,6 +1,7 @@
 // Builds the starting town: about 60 people in households of mixed shapes, with kin spread across them.
 import { foodTarget } from './agent';
 import { totalCoins } from './coins';
+import { initialBuildings } from './construction';
 import { generateLand } from './land';
 import type { GameData } from './data';
 import { isWorkingAge } from './family';
@@ -19,6 +20,7 @@ export function createWorld(data: GameData, seed = 1): World {
     citizens: [],
     households: [],
     land: { width: 0, height: 0, terrain: [], roads: [], boardwalks: [], walls: [], gates: [], docks: [], river: false, places: [] },
+    buildings: {},
     batches: new Map(),
     nextBatchId: 1,
     ledger: [],
@@ -81,7 +83,7 @@ export function createWorld(data: GameData, seed = 1): World {
     }
     const tools = new Set(data.recipesByTrade[c.trade!].flatMap((r) => (r.tool ? [r.tool] : [])));
     for (const tool of tools) seedGood(world, data, c, tool, 1);
-    // A few days of inputs for each recipe, and farmers and laborers start with one batch to sell.
+    // A few days of inputs for each recipe, and farmers and other gatherers start with one batch to sell.
     const recipes = data.recipesByTrade[c.trade!];
     const runs = town.trades[c.trade!].batchesPerDay * town.startInputDays;
     recipes.forEach((r, i) => {
@@ -94,6 +96,7 @@ export function createWorld(data: GameData, seed = 1): World {
   for (const good of town.granary.goods) seedGood(world, data, world.granary, good, Math.round(town.granary.targetUnits * town.granary.startShare));
   // Where everyone lives and works. Uses its own random stream, so it never changes the economy.
   world.land = generateLand(world, data);
+  world.buildings = initialBuildings(world);
   return world;
 }
 

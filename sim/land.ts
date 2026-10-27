@@ -181,6 +181,7 @@ export function generateLand(world: World, data: GameData): Land {
     ['granary', 'Granary', 'granary', 3, 3, near(8)],
     ['work:baker', 'Bakery', 'bakery', 3, 3, near(7)],
     ['work:blacksmith', 'Smithy', 'smithy', 3, 3, (x, y) => -Math.abs(ring(x, y) - 0.78) * 20],
+    ['work:builder', "Builders' yard", 'yard', 3, 3, (x, y) => -Math.abs(ring(x, y) - 0.7) * 20],
   ];
   for (const [key, label, sprite, w, h, score] of shared) {
     const at = pickOrClear(w, h, land, true, score);
@@ -195,8 +196,23 @@ export function generateLand(world: World, data: GameData): Land {
     }
     return all ? n / all : 0;
   };
-  const woods = pickOrClear(9, 7, ['forest', 'grass', 'rock'], false, (x, y) => share(x, y, 5, 'forest') * 10 + share(x, y, 6, 'rock') * 6 - dist(x, y, cx, cy) * 0.08);
-  if (woods) claim({ key: 'work:laborer', label: 'Woods and quarry', sprite: 'woods', x: woods.x, y: woods.y, w: 9, h: 7 });
+  // Work sites outside the wall, each on the land that suits it.
+  const woods = pickOrClear(8, 6, ['forest', 'grass'], false, (x, y) => share(x, y, 5, 'forest') * 10 - dist(x, y, cx, cy) * 0.08);
+  if (woods) claim({ key: 'work:lumberjack', label: 'Woods', sprite: 'woods', x: woods.x, y: woods.y, w: 8, h: 6 });
+  const quarry = pickOrClear(6, 5, ['rock', 'grass', 'forest'], false, (x, y) => share(x, y, 5, 'rock') * 12 - dist(x, y, cx, cy) * 0.06);
+  if (quarry) claim({ key: 'work:miner', label: 'Quarry and mine', sprite: 'quarry', x: quarry.x, y: quarry.y, w: 6, h: 5 });
+  const wildAway = woods ? { x: woods.x + 4, y: woods.y + 3 } : { x: cx, y: cy };
+  const wild = pickOrClear(7, 5, ['forest', 'grass'], false, (x, y) => share(x, y, 4, 'forest') * 8 - Math.abs(dist(x, y, wildAway.x, wildAway.y) - 12) * 0.4);
+  if (wild) claim({ key: 'work:forager', label: 'Wildwood', sprite: 'wildwood', x: wild.x, y: wild.y, w: 7, h: 5 });
+  // The fishing jetty sits on the lake shore, close to town.
+  const shore = (x: number, y: number) => {
+    let n = 0;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (inside(Math.floor(x) + dx, Math.floor(y) + dy) && terrain[idx(Math.floor(x) + dx, Math.floor(y) + dy)] === 'water' && !canal.has(idx(Math.floor(x) + dx, Math.floor(y) + dy))) n++;
+    return n;
+  };
+  const jetty = pick(4, 2, land, undefined, (x, y) => Math.min(shore(x, y), 6) * 3 - dist(x, y, cx, cy) * 0.3, 3000)
+    ?? pickOrClear(4, 2, land, undefined, (x, y) => shore(x, y) * 3 - dist(x, y, cx, cy) * 0.3);
+  if (jetty) claim({ key: 'work:fisherman', label: 'Fishing jetty', sprite: 'jetty', x: jetty.x, y: jetty.y, w: 4, h: 2 });
   const fields = pickOrClear(11, 8, land, false, (x, y) => wet[idx(Math.floor(x), Math.floor(y))]! * 3 - Math.abs(ring(x, y) - 1.7) * 4);
   if (fields) claim({ key: 'work:farmer', label: 'Fields', sprite: 'fields', x: fields.x, y: fields.y, w: 11, h: 8 });
 
@@ -272,14 +288,18 @@ export function generateLand(world: World, data: GameData): Land {
   };
   const purse = (hId: number) => livingMembers(world, world.households[hId]!).reduce((s, c) => s + c.coins, 0);
   const homes = world.households.filter((h) => livingMembers(world, h).length).sort((a, b) => purse(b.id) - purse(a.id));
-  const fieldsAt = fields ? { x: fields.x + 5, y: fields.y + 4 } : { x: mx, y: my };
-  const woodsAt = woods ? { x: woods.x + 4, y: woods.y + 3 } : { x: mx, y: my };
+  // Where each trade works, so households live towards their work.
+  const workAt = (t: string) => {
+    const p = places.find((q) => q.key === `work:${t}`);
+    return p ? { x: p.x + p.w / 2, y: p.y + p.h / 2 } : { x: mx, y: my };
+  };
   homes.forEach((h, rank) => {
     const members = livingMembers(world, h);
     const wealth = 1 - rank / Math.max(1, homes.length - 1); // 1 for the richest, 0 for the poorest
     const sizes: [number, number][] = wealth > 0.8 ? [[4, 3], [3, 4], [4, 4]] : members.length >= 5 ? [[3, 3], [4, 2], [2, 4]] : [[2, 2], [3, 2], [2, 3]];
     const work = (t: string) => members.filter((m) => m.trade === t).length;
-    const pull = work('farmer') > work('laborer') ? fieldsAt : work('laborer') > 0 ? woodsAt : { x: mx, y: my };
+    const main = members.filter((m) => m.trade).map((m) => m.trade!).sort((a, b) => work(b) - work(a))[0];
+    const pull = main && main !== 'merchant' && main !== 'baker' && main !== 'builder' && main !== 'blacksmith' ? workAt(main) : { x: mx, y: my };
     const outsideOk = wealth < 0.25;
     let best: { x: number; y: number; w: number; h: number; s: number } | undefined;
     for (let t = 0; t < 3000; t++) {

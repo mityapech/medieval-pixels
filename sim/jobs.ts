@@ -32,7 +32,7 @@ function knownEarnings(world: World, data: GameData, c: Citizen): Record<Trade, 
   const kin = new Set(kinOf(world, c).map((k) => k.person));
   const known = {} as Record<Trade, number>;
   for (const t of TRADES) {
-    const workers = world.citizens.filter((w) => w.alive && w !== c && w.trade === t && w.coinHistory.length);
+    const workers = world.citizens.filter((w) => w.alive && w !== c && w.trade === t && w.coinHistory.length >= data.town.jobChange.judgeOverDays);
     const sample = [...workers.filter((w) => kin.has(w)), ...shuffle(world, workers.filter((w) => !kin.has(w)))]
       .slice(0, data.town.jobChange.acquaintances);
     known[t] = sample.length ? sample.reduce((s, w) => s + net(w), 0) / sample.length : 0;
@@ -90,7 +90,8 @@ export function reconsiderWork(world: World, data: GameData): JobChange[] {
   const { jobChange } = data.town;
   const changes: JobChange[] = [];
   for (const c of world.citizens) {
-    if (!c.alive || !c.coinHistory.length) continue;
+    // People judge their trade over a full week; nobody changes in their first week at it.
+    if (!c.alive || c.coinHistory.length < data.town.jobChange.judgeOverDays) continue;
     if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult')) continue;
     const typical = knownEarnings(world, data, c);
     // Servants and other post-holders go back to a trade when one clearly pays better than their wage.

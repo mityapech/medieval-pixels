@@ -12,6 +12,7 @@ import { findWork, reconsiderWork } from './jobs';
 import { adjustPrices, newTally, tradePhase } from './market';
 import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
+import { constructionDay } from './construction';
 import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
@@ -19,7 +20,7 @@ import { TRADES } from './types';
 
 export function tick(world: World, data: GameData): DayReport {
   world.day++;
-  for (const c of world.citizens) if (c.alive) c.coinHistory = [...c.coinHistory, c.coins].slice(-data.town.jobChange.everyDays);
+  for (const c of world.citizens) if (c.alive) c.coinHistory = [...c.coinHistory, c.coins].slice(-data.town.jobChange.judgeOverDays);
 
   const eventsStarted = rollEvents(world, data);
   driftNeighbourPrices(world, data);
@@ -36,6 +37,7 @@ export function tick(world: World, data: GameData): DayReport {
   }
   const tally = newTally();
   tradePhase(world, data, tally);
+  familyEvents.push(...constructionDay(world, data, tally));
   stockGranary(world, data);
   const { tax: hearth, alms } = authorityDay(world, data);
   familyEvents.push(...payServants(world, data));

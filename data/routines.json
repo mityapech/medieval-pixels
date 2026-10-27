@@ -1,140 +1,668 @@
 {
-  "_comment": "What people visibly do through the day. 'where' is a kind of place: work, home, market, church, granary, docks, gate, wall, canal, play, employer. Steps are shown in order across the working hours; the goods themselves are made by the recipe in goods.json.",
+  "_comment": "What people visibly do through the day. 'where' is a kind of place: work, home, market, church, granary, docks, gate, wall, canal, play, employer, lake (out in a boat), site (a builder's building job). Steps are shown in order across the working hours; the goods themselves are made by the recipe in goods.json.",
   "recipeSteps": {
     "grow_wheat": [
-      { "task": "Ploughing the furrows", "where": "work" },
-      { "task": "Sowing seed", "where": "work" },
-      { "task": "Weeding between the rows", "where": "work" },
-      { "task": "Scything the wheat", "where": "work" },
-      { "task": "Binding sheaves", "where": "work" },
-      { "task": "Carting the harvest home", "where": "home" }
+      {
+        "task": "Ploughing the furrows",
+        "where": "work"
+      },
+      {
+        "task": "Sowing seed",
+        "where": "work"
+      },
+      {
+        "task": "Weeding between the rows",
+        "where": "work"
+      },
+      {
+        "task": "Scything the wheat",
+        "where": "work"
+      },
+      {
+        "task": "Binding sheaves",
+        "where": "work"
+      },
+      {
+        "task": "Carting the harvest home",
+        "where": "home"
+      }
     ],
     "grow_vegetables": [
-      { "task": "Digging the beds", "where": "work" },
-      { "task": "Planting out seedlings", "where": "work" },
-      { "task": "Carrying water from the canal", "where": "canal" },
-      { "task": "Pulling weeds", "where": "work" },
-      { "task": "Lifting the crop", "where": "work" },
-      { "task": "Carrying baskets home", "where": "home" }
+      {
+        "task": "Digging the beds",
+        "where": "work"
+      },
+      {
+        "task": "Planting out seedlings",
+        "where": "work"
+      },
+      {
+        "task": "Carrying water from the canal",
+        "where": "canal"
+      },
+      {
+        "task": "Pulling weeds",
+        "where": "work"
+      },
+      {
+        "task": "Lifting the crop",
+        "where": "work"
+      },
+      {
+        "task": "Carrying baskets home",
+        "where": "home"
+      }
     ],
     "grow_fruit": [
-      { "task": "Pruning the orchard", "where": "work" },
-      { "task": "Propping heavy branches", "where": "work" },
-      { "task": "Picking fruit", "where": "work" },
-      { "task": "Sorting good fruit from bruised", "where": "work" },
-      { "task": "Carrying baskets home", "where": "home" }
+      {
+        "task": "Pruning the orchard",
+        "where": "work"
+      },
+      {
+        "task": "Propping heavy branches",
+        "where": "work"
+      },
+      {
+        "task": "Picking fruit",
+        "where": "work"
+      },
+      {
+        "task": "Sorting good fruit from bruised",
+        "where": "work"
+      },
+      {
+        "task": "Carrying baskets home",
+        "where": "home"
+      }
     ],
     "bake_bread": [
-      { "task": "Grinding grain", "where": "work" },
-      { "task": "Kneading dough", "where": "work" },
-      { "task": "Firing the oven", "where": "work" },
-      { "task": "Baking loaves", "where": "work" },
-      { "task": "Setting out the bread", "where": "work" }
+      {
+        "task": "Grinding grain",
+        "where": "work"
+      },
+      {
+        "task": "Kneading dough",
+        "where": "work"
+      },
+      {
+        "task": "Firing the oven",
+        "where": "work"
+      },
+      {
+        "task": "Baking loaves",
+        "where": "work"
+      },
+      {
+        "task": "Setting out the bread",
+        "where": "work"
+      }
     ],
     "bake_pie": [
-      { "task": "Chopping vegetables", "where": "work" },
-      { "task": "Rolling pastry", "where": "work" },
-      { "task": "Filling the pies", "where": "work" },
-      { "task": "Baking pies", "where": "work" },
-      { "task": "Setting out the pies", "where": "work" }
+      {
+        "task": "Chopping vegetables",
+        "where": "work"
+      },
+      {
+        "task": "Rolling pastry",
+        "where": "work"
+      },
+      {
+        "task": "Filling the pies",
+        "where": "work"
+      },
+      {
+        "task": "Baking pies",
+        "where": "work"
+      },
+      {
+        "task": "Setting out the pies",
+        "where": "work"
+      }
     ],
     "bake_tart": [
-      { "task": "Stoning the fruit", "where": "work" },
-      { "task": "Rolling pastry", "where": "work" },
-      { "task": "Filling the tarts", "where": "work" },
-      { "task": "Baking tarts", "where": "work" },
-      { "task": "Setting out the tarts", "where": "work" }
+      {
+        "task": "Stoning the fruit",
+        "where": "work"
+      },
+      {
+        "task": "Rolling pastry",
+        "where": "work"
+      },
+      {
+        "task": "Filling the tarts",
+        "where": "work"
+      },
+      {
+        "task": "Baking tarts",
+        "where": "work"
+      },
+      {
+        "task": "Setting out the tarts",
+        "where": "work"
+      }
     ],
     "chop_wood": [
-      { "task": "Picking a tree to fell", "where": "work" },
-      { "task": "Felling a tree", "where": "work" },
-      { "task": "Lopping branches", "where": "work" },
-      { "task": "Splitting logs", "where": "work" },
-      { "task": "Stacking firewood", "where": "work" }
+      {
+        "task": "Picking a tree to fell",
+        "where": "work"
+      },
+      {
+        "task": "Felling a tree",
+        "where": "work"
+      },
+      {
+        "task": "Lopping branches",
+        "where": "work"
+      },
+      {
+        "task": "Splitting logs",
+        "where": "work"
+      },
+      {
+        "task": "Stacking firewood",
+        "where": "work"
+      }
     ],
     "quarry_stone": [
-      { "task": "Clearing the rock face", "where": "work" },
-      { "task": "Driving wedges", "where": "work" },
-      { "task": "Breaking stone", "where": "work" },
-      { "task": "Hauling blocks", "where": "work" }
+      {
+        "task": "Clearing the rock face",
+        "where": "work"
+      },
+      {
+        "task": "Driving wedges",
+        "where": "work"
+      },
+      {
+        "task": "Breaking stone",
+        "where": "work"
+      },
+      {
+        "task": "Hauling blocks",
+        "where": "work"
+      }
     ],
     "mine_ore": [
-      { "task": "Swinging the pick", "where": "work" },
-      { "task": "Breaking out ore", "where": "work" },
-      { "task": "Sorting ore from rubble", "where": "work" },
-      { "task": "Hauling ore", "where": "work" }
+      {
+        "task": "Swinging the pick",
+        "where": "work"
+      },
+      {
+        "task": "Breaking out ore",
+        "where": "work"
+      },
+      {
+        "task": "Sorting ore from rubble",
+        "where": "work"
+      },
+      {
+        "task": "Hauling ore",
+        "where": "work"
+      }
     ],
     "smelt_iron": [
-      { "task": "Stoking the furnace", "where": "work" },
-      { "task": "Loading ore", "where": "work" },
-      { "task": "Working the bellows", "where": "work" },
-      { "task": "Drawing out the bloom", "where": "work" }
+      {
+        "task": "Stoking the furnace",
+        "where": "work"
+      },
+      {
+        "task": "Loading ore",
+        "where": "work"
+      },
+      {
+        "task": "Working the bellows",
+        "where": "work"
+      },
+      {
+        "task": "Drawing out the bloom",
+        "where": "work"
+      }
     ],
     "forge_hoe": [
-      { "task": "Heating the iron", "where": "work" },
-      { "task": "Hammering out a hoe blade", "where": "work" },
-      { "task": "Quenching the blade", "where": "work" },
-      { "task": "Fitting an ash handle", "where": "work" }
+      {
+        "task": "Heating the iron",
+        "where": "work"
+      },
+      {
+        "task": "Hammering out a hoe blade",
+        "where": "work"
+      },
+      {
+        "task": "Quenching the blade",
+        "where": "work"
+      },
+      {
+        "task": "Fitting an ash handle",
+        "where": "work"
+      }
     ],
     "forge_axe": [
-      { "task": "Heating the iron", "where": "work" },
-      { "task": "Hammering out an axe head", "where": "work" },
-      { "task": "Quenching the edge", "where": "work" },
-      { "task": "Hafting the axe", "where": "work" }
+      {
+        "task": "Heating the iron",
+        "where": "work"
+      },
+      {
+        "task": "Hammering out an axe head",
+        "where": "work"
+      },
+      {
+        "task": "Quenching the edge",
+        "where": "work"
+      },
+      {
+        "task": "Hafting the axe",
+        "where": "work"
+      }
     ],
     "forge_pickaxe": [
-      { "task": "Heating the iron", "where": "work" },
-      { "task": "Drawing out the pick", "where": "work" },
-      { "task": "Quenching the points", "where": "work" },
-      { "task": "Hafting the pickaxe", "where": "work" }
+      {
+        "task": "Heating the iron",
+        "where": "work"
+      },
+      {
+        "task": "Drawing out the pick",
+        "where": "work"
+      },
+      {
+        "task": "Quenching the points",
+        "where": "work"
+      },
+      {
+        "task": "Hafting the pickaxe",
+        "where": "work"
+      }
     ],
     "make_nails": [
-      { "task": "Drawing out nail rod", "where": "work" },
-      { "task": "Cutting nail lengths", "where": "work" },
-      { "task": "Heading nails", "where": "work" }
+      {
+        "task": "Drawing out nail rod",
+        "where": "work"
+      },
+      {
+        "task": "Cutting nail lengths",
+        "where": "work"
+      },
+      {
+        "task": "Heading nails",
+        "where": "work"
+      }
+    ],
+    "pick_berries": [
+      {
+        "task": "Walking out to the bramble patches",
+        "where": "work"
+      },
+      {
+        "task": "Picking berries",
+        "where": "work"
+      },
+      {
+        "task": "Filling baskets",
+        "where": "work"
+      },
+      {
+        "task": "Carrying berries to town",
+        "where": "market"
+      }
+    ],
+    "gather_mushrooms": [
+      {
+        "task": "Searching under the trees",
+        "where": "work"
+      },
+      {
+        "task": "Gathering mushrooms",
+        "where": "work"
+      },
+      {
+        "task": "Sorting out the poisonous ones",
+        "where": "work"
+      },
+      {
+        "task": "Carrying mushrooms to town",
+        "where": "market"
+      }
+    ],
+    "gather_herbs": [
+      {
+        "task": "Looking for healing herbs",
+        "where": "work"
+      },
+      {
+        "task": "Cutting herbs",
+        "where": "work"
+      },
+      {
+        "task": "Tying herbs to dry",
+        "where": "home"
+      }
+    ],
+    "catch_fish": [
+      {
+        "task": "Readying the boat",
+        "where": "docks"
+      },
+      {
+        "task": "Rowing out at dawn",
+        "where": "lake"
+      },
+      {
+        "task": "Casting nets",
+        "where": "lake"
+      },
+      {
+        "task": "Hauling in the catch",
+        "where": "lake"
+      },
+      {
+        "task": "Rowing back to the docks",
+        "where": "docks"
+      },
+      {
+        "task": "Gutting and salting fish",
+        "where": "work"
+      }
     ]
   },
   "idleWork": {
-    "farmer": [{ "task": "Mending a fence", "where": "work" }, { "task": "Sharpening tools", "where": "home" }],
-    "baker": [{ "task": "Scrubbing the troughs", "where": "work" }, { "task": "Waiting on flour", "where": "work" }],
-    "laborer": [{ "task": "Looking for work", "where": "market" }, { "task": "Gathering kindling", "where": "work" }],
-    "blacksmith": [{ "task": "Banking the fire", "where": "work" }, { "task": "Sorting scrap iron", "where": "work" }]
+    "farmer": [
+      {
+        "task": "Mending a fence",
+        "where": "work"
+      },
+      {
+        "task": "Sharpening tools",
+        "where": "home"
+      }
+    ],
+    "baker": [
+      {
+        "task": "Scrubbing the troughs",
+        "where": "work"
+      },
+      {
+        "task": "Waiting on flour",
+        "where": "work"
+      }
+    ],
+    "blacksmith": [
+      {
+        "task": "Banking the fire",
+        "where": "work"
+      },
+      {
+        "task": "Sorting scrap iron",
+        "where": "work"
+      }
+    ],
+    "lumberjack": [
+      {
+        "task": "Sharpening the axe",
+        "where": "home"
+      },
+      {
+        "task": "Gathering kindling",
+        "where": "work"
+      }
+    ],
+    "miner": [
+      {
+        "task": "Shoring up the mine",
+        "where": "work"
+      },
+      {
+        "task": "Looking for work",
+        "where": "market"
+      }
+    ],
+    "forager": [
+      {
+        "task": "Mending baskets",
+        "where": "home"
+      },
+      {
+        "task": "Wandering the wildwood",
+        "where": "work"
+      }
+    ],
+    "fisherman": [
+      {
+        "task": "Mending nets",
+        "where": "work"
+      },
+      {
+        "task": "Caulking the boat",
+        "where": "docks"
+      }
+    ],
+    "builder": [
+      {
+        "task": "Sorting timber at the yard",
+        "where": "work"
+      },
+      {
+        "task": "Looking for work",
+        "where": "market"
+      },
+      {
+        "task": "Sharpening chisels",
+        "where": "work"
+      }
+    ]
   },
   "merchant": {
-    "open": [{ "task": "Opening the stall", "where": "work" }],
-    "visit": [{ "task": "Walking out to the producers", "where": "gate" }, { "task": "Haggling at a farm gate", "where": "gate" }],
-    "import": [{ "task": "Unloading a boat at the docks", "where": "docks" }, { "task": "Meeting a cart at the gate", "where": "gate" }],
-    "export": [{ "task": "Loading goods for another town", "where": "docks" }],
-    "sell": [{ "task": "Crying wares", "where": "market" }, { "task": "Haggling over prices", "where": "market" }, { "task": "Counting the day's coin", "where": "work" }]
+    "open": [
+      {
+        "task": "Opening the stall",
+        "where": "work"
+      }
+    ],
+    "visit": [
+      {
+        "task": "Walking out to the producers",
+        "where": "gate"
+      },
+      {
+        "task": "Haggling at a farm gate",
+        "where": "gate"
+      }
+    ],
+    "import": [
+      {
+        "task": "Unloading a boat at the docks",
+        "where": "docks"
+      },
+      {
+        "task": "Meeting a cart at the gate",
+        "where": "gate"
+      }
+    ],
+    "export": [
+      {
+        "task": "Loading goods for another town",
+        "where": "docks"
+      }
+    ],
+    "sell": [
+      {
+        "task": "Crying wares",
+        "where": "market"
+      },
+      {
+        "task": "Haggling over prices",
+        "where": "market"
+      },
+      {
+        "task": "Counting the day's coin",
+        "where": "work"
+      }
+    ]
   },
   "office": {
-    "guard": [{ "task": "Walking the wall", "where": "wall" }, { "task": "Standing watch at the gate", "where": "gate" }, { "task": "Patrolling the market", "where": "market" }, { "task": "Walking the wall", "where": "wall" }],
-    "priest": [{ "task": "Morning prayers", "where": "church" }, { "task": "Sweeping the church", "where": "church" }, { "task": "Visiting the poor", "where": "home" }, { "task": "Blessing the market", "where": "market" }],
-    "servant": [{ "task": "Fetching water from the canal", "where": "canal" }, { "task": "Sweeping the house", "where": "employer" }, { "task": "Running errands", "where": "market" }, { "task": "Cooking supper", "where": "employer" }]
+    "guard": [
+      {
+        "task": "Walking the wall",
+        "where": "wall"
+      },
+      {
+        "task": "Standing watch at the gate",
+        "where": "gate"
+      },
+      {
+        "task": "Patrolling the market",
+        "where": "market"
+      },
+      {
+        "task": "Walking the wall",
+        "where": "wall"
+      }
+    ],
+    "priest": [
+      {
+        "task": "Morning prayers",
+        "where": "church"
+      },
+      {
+        "task": "Sweeping the church",
+        "where": "church"
+      },
+      {
+        "task": "Visiting the poor",
+        "where": "home"
+      },
+      {
+        "task": "Blessing the market",
+        "where": "market"
+      }
+    ],
+    "servant": [
+      {
+        "task": "Fetching water from the canal",
+        "where": "canal"
+      },
+      {
+        "task": "Sweeping the house",
+        "where": "employer"
+      },
+      {
+        "task": "Running errands",
+        "where": "market"
+      },
+      {
+        "task": "Cooking supper",
+        "where": "employer"
+      }
+    ]
   },
-  "idle": [{ "task": "Mending clothes", "where": "home" }, { "task": "Fetching water", "where": "canal" }, { "task": "Gossiping at the market", "where": "market" }, { "task": "Tending the hearth", "where": "home" }],
-  "elder": [{ "task": "Sitting by the door", "where": "home" }, { "task": "Feeding the hens", "where": "home" }, { "task": "Watching the boats", "where": "docks" }, { "task": "Telling stories to the children", "where": "play" }],
+  "idle": [
+    {
+      "task": "Mending clothes",
+      "where": "home"
+    },
+    {
+      "task": "Fetching water",
+      "where": "canal"
+    },
+    {
+      "task": "Gossiping at the market",
+      "where": "market"
+    },
+    {
+      "task": "Tending the hearth",
+      "where": "home"
+    }
+  ],
+  "elder": [
+    {
+      "task": "Sitting by the door",
+      "where": "home"
+    },
+    {
+      "task": "Feeding the hens",
+      "where": "home"
+    },
+    {
+      "task": "Watching the boats",
+      "where": "docks"
+    },
+    {
+      "task": "Telling stories to the children",
+      "where": "play"
+    }
+  ],
   "children": {
     "games": [
-      { "task": "Playing tag", "where": "play" },
-      { "task": "Playing hide and seek", "where": "play" },
-      { "task": "Chasing a hoop", "where": "play" },
-      { "task": "Skipping stones on the canal", "where": "canal" },
-      { "task": "Racing to the docks", "where": "docks" },
-      { "task": "Playing knights and bandits", "where": "play" },
-      { "task": "Watching the guards at the gate", "where": "gate" }
+      {
+        "task": "Playing tag",
+        "where": "play"
+      },
+      {
+        "task": "Playing hide and seek",
+        "where": "play"
+      },
+      {
+        "task": "Chasing a hoop",
+        "where": "play"
+      },
+      {
+        "task": "Skipping stones on the canal",
+        "where": "canal"
+      },
+      {
+        "task": "Racing to the docks",
+        "where": "docks"
+      },
+      {
+        "task": "Playing knights and bandits",
+        "where": "play"
+      },
+      {
+        "task": "Watching the guards at the gate",
+        "where": "gate"
+      }
     ],
     "chores": [
-      { "task": "Fetching water", "where": "canal" },
-      { "task": "Minding the little ones", "where": "home" },
-      { "task": "Running to the market", "where": "market" }
+      {
+        "task": "Fetching water",
+        "where": "canal"
+      },
+      {
+        "task": "Minding the little ones",
+        "where": "home"
+      },
+      {
+        "task": "Running to the market",
+        "where": "market"
+      }
     ]
   },
   "merchantSpecialities": {
-    "grain and produce": ["wheat", "vegetables", "fruit"],
-    "baked goods": ["bread", "pie", "tart"],
-    "timber and stone": ["wood", "stone"],
-    "iron and tools": ["iron_ore", "iron_ingot", "nails", "hoe", "axe", "pickaxe"]
+    "grain and produce": [
+      "wheat",
+      "vegetables",
+      "fruit"
+    ],
+    "baked goods": [
+      "bread",
+      "pie",
+      "tart"
+    ],
+    "timber and stone": [
+      "wood",
+      "stone"
+    ],
+    "iron and tools": [
+      "iron_ore",
+      "iron_ingot",
+      "nails",
+      "hoe",
+      "axe",
+      "pickaxe"
+    ],
+    "fish and forage": [
+      "fish",
+      "berries",
+      "mushrooms",
+      "herbs"
+    ]
   },
   "adverts": {
     "imported": [
@@ -148,5 +676,31 @@
       "Come and see my {good}! {price} coins, no cheaper anywhere!",
       "Only a few {good} left at {price} coins!"
     ]
-  }
+  },
+  "builder": [
+    {
+      "task": "Fetching materials from the yard",
+      "where": "work"
+    },
+    {
+      "task": "Putting up scaffolding",
+      "where": "site"
+    },
+    {
+      "task": "Replacing rotten beams",
+      "where": "site"
+    },
+    {
+      "task": "Laying stone",
+      "where": "site"
+    },
+    {
+      "task": "Nailing new boards",
+      "where": "site"
+    },
+    {
+      "task": "Clearing up",
+      "where": "site"
+    }
+  ]
 }

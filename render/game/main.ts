@@ -40,10 +40,12 @@ const SPRITES = spritesJson as { places: Record<string, string>; people: Record<
 const PLACEHOLDER: Record<string, number> = {
   market: 0xcbb98f, church: 0x9c97ab, granary: 0xa77e48, fields: 0xc2a24a, woods: 0x7a5a2c,
   bakery: 0xb9733e, smithy: 0x5f5d58, merchants: 0xa98756, house: 0x8a6440, townhouse: 0x6e4a2e,
+  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
-  farmer: 0x2a78d6, baker: 0xeb6834, laborer: 0x1baf7a, blacksmith: 0xeda100,
+  farmer: 0x2a78d6, baker: 0xeb6834, lumberjack: 0x1baf7a, miner: 0x7a6a5a, forager: 0x8cbf3f, fisherman: 0x3fb0c9,
+  builder: 0xc9853f, blacksmith: 0xeda100,
   merchant: 0xe87ba4, guard: 0x008300, priest: 0x6250d6, servant: 0xe34948,
 };
 const IDLE_COLOUR = 0xf0efec;
@@ -171,7 +173,10 @@ if (import.meta.env.DEV) (window as unknown as { townWalkers: typeof walkers }).
 function drawWalker(w: Walker): void {
   const colour = w.c.office ? JOB_COLOUR[w.c.office]! : w.c.trade ? JOB_COLOUR[w.c.trade]! : IDLE_COLOUR;
   const size = w.c.age < data.town.workingAge.adult ? 7 : 10;
-  w.g.clear().rect(-size / 2, -size / 2, size, size).fill(colour).stroke({ width: 1.5, color: 0x1a1a19 });
+  w.g.clear();
+  // Out on the water, people sit in a small boat.
+  if (life.onWater(w.x, w.y)) w.g.roundRect(-11, -4, 22, 11, 5).fill(0x6e4e2c).stroke({ width: 1.5, color: 0x3b2a18 });
+  w.g.rect(-size / 2, -size / 2, size, size).fill(colour).stroke({ width: 1.5, color: 0x1a1a19 });
   if (selected === w.c.id) w.g.rect(-size / 2 - 3, -size / 2 - 3, size + 6, size + 6).stroke({ width: 2, color: 0xffffff });
   w.g.visible = w.c.alive;
   w.g.position.set(w.x, w.y);

@@ -9,7 +9,7 @@ import { askPrice } from './market';
 import { specialityOf } from './specialities';
 import type { Advert, Citizen, World } from './types';
 
-/** One visible step of someone's day. where: work, home, market, church, granary, docks, gate, wall, canal, play, employer. */
+/** One visible step of someone's day. where: work, home, market, church, granary, docks, gate, wall, canal, play, employer, lake, site. */
 export interface Task {
   task: string;
   where: string;
@@ -22,6 +22,7 @@ const R = routinesJson as unknown as {
   office: Record<string, Task[]>;
   idle: Task[];
   elder: Task[];
+  builder: Task[];
   children: { games: Task[]; chores: Task[] };
   adverts: { imported: string[]; local: string[] };
 };
@@ -52,6 +53,7 @@ export function dayPlan(world: World, data: GameData, c: Citizen): Task[] {
     if (c.today.exported && Object.keys(c.today.exported).length) plan.push(...R.merchant.export);
     return [...plan, ...R.merchant.sell];
   }
+  if (c.trade === 'builder') return c.today.job ? R.builder : R.idleWork.builder ?? [];
   if (c.trade) {
     // Every run of a recipe today, each with its steps; a day with nothing to make has its own small jobs.
     const plan = (c.workLog ?? []).flatMap((run) => R.recipeSteps[run.recipe] ?? []);

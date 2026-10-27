@@ -83,7 +83,7 @@ function sellersToVisit(world: World, data: GameData, buyer: Citizen, good: Good
  * brought in from a neighbouring town is always one of the options (unless unmetKey is null), so local prices
  * cannot stay above what an import costs. Shortfalls count as unmet demand.
  */
-function buyBest(
+export function buyBest(
   world: World, data: GameData, buyer: Citizen, goods: GoodId[], qty: number, keepCoins: number, tally: DayTally,
   unmetKey: string | null = goods[0]!,
 ): number {

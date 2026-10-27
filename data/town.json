@@ -10,11 +10,15 @@
     "extended": 1
   },
   "trades": {
-    "farmer":     { "share": 0.35, "startCoins": 80,  "batchesPerDay": 1 },
-    "baker":      { "share": 0.2, "startCoins": 90,  "batchesPerDay": 4 },
-    "laborer":    { "share": 0.23, "startCoins": 60,  "batchesPerDay": 1 },
+    "farmer":     { "share": 0.28, "startCoins": 80,  "batchesPerDay": 1 },
+    "baker":      { "share": 0.14, "startCoins": 90,  "batchesPerDay": 4 },
+    "lumberjack": { "share": 0.1,  "startCoins": 60,  "batchesPerDay": 1 },
+    "miner":      { "share": 0.07, "startCoins": 60,  "batchesPerDay": 1 },
+    "forager":    { "share": 0.06, "startCoins": 40,  "batchesPerDay": 1 },
+    "fisherman":  { "share": 0.09, "startCoins": 60,  "batchesPerDay": 1 },
+    "builder":    { "share": 0.06, "startCoins": 90,  "batchesPerDay": 0 },
     "blacksmith": { "share": 0.1,  "startCoins": 120, "batchesPerDay": 3 },
-    "merchant":   { "share": 0.12, "startCoins": 160, "batchesPerDay": 0, "startCapital": 60, "visitsPerDay": 6, "carryCapacity": 40 }
+    "merchant":   { "share": 0.1,  "startCoins": 160, "batchesPerDay": 0, "startCapital": 60, "visitsPerDay": 6, "carryCapacity": 40 }
   },
   "workingAge": { "adult": 12, "elder": 60 },
   "secondEarnerChance": 0.6,
@@ -38,6 +42,15 @@
     "wageMeals": 3,
     "affordDays": 20,
     "membersForSecond": 6
+  },
+  "construction": {
+    "materials": { "wood": 2, "stone": 2, "nails": 4 },
+    "repairBelow": 65,
+    "repairAmount": 35,
+    "decayPerDay": { "home": 0.9, "public": 0.6 },
+    "labourMeals": 3,
+    "newHouseMaterials": { "wood": 8, "stone": 8, "nails": 12 },
+    "newHouseDays": 4
   },
   "startFoodDays": 4,
   "foodStockDays": 2,
@@ -91,6 +104,7 @@
   },
   "jobChange": {
     "everyDays": 3,
+    "judgeOverDays": 7,
     "chance": 0.5,
     "minGain": 5,
     "quitWhenSavedDays": 60,

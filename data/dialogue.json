@@ -61,7 +61,7 @@
         ],
         "other": [
           "The woodcutters can't keep up, they say.",
-          "Ask a laborer, they'll sell you deadwood cheap."
+          "Ask a lumberjack, they'll sell you deadwood cheap."
         ]
       }
     },
@@ -201,7 +201,7 @@
         "I can't remember a winter so bitter."
       ],
       "reply": {
-        "laborer": [
+        "lumberjack": [
           "Good for my trade, if my hands don't freeze.",
           "Everyone wants wood and there's only so much."
         ],

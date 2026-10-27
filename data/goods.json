@@ -6,6 +6,10 @@
     { "id": "bread",      "name": "bread",       "kind": "food",     "basePrice": 5,  "weight": 1, "nutrition": 1, "appeal": 1.0 },
     { "id": "pie",        "name": "vegetable pie", "kind": "food",   "basePrice": 7,  "weight": 1, "nutrition": 1, "appeal": 1.15 },
     { "id": "tart",       "name": "fruit tart",  "kind": "food",     "basePrice": 8,  "weight": 1, "nutrition": 1, "appeal": 1.3 },
+    { "id": "fish",       "name": "fish",        "kind": "food",     "basePrice": 5,  "weight": 1, "nutrition": 1, "appeal": 0.9 },
+    { "id": "berries",    "name": "berries",     "kind": "crop",     "basePrice": 3,  "weight": 1, "nutrition": 1, "appeal": 0.6 },
+    { "id": "mushrooms",  "name": "mushrooms",   "kind": "crop",     "basePrice": 4,  "weight": 1, "nutrition": 1, "appeal": 0.65 },
+    { "id": "herbs",      "name": "herbs",       "kind": "material", "basePrice": 6,  "weight": 0.5 },
     { "id": "wood",       "name": "wood",        "kind": "material", "basePrice": 4,  "weight": 2 },
     { "id": "stone",      "name": "stone",       "kind": "material", "basePrice": 4,  "weight": 3 },
     { "id": "iron_ore",   "name": "iron ore",    "kind": "material", "basePrice": 5,  "weight": 3 },
@@ -24,9 +28,14 @@
     { "id": "bake_pie",        "trade": "baker",      "inputs": { "vegetables": 2, "wheat": 1, "wood": 1 }, "outputs": { "pie": 5 } },
     { "id": "bake_tart",       "trade": "baker",      "inputs": { "fruit": 2, "wheat": 1, "wood": 1 },     "outputs": { "tart": 5 } },
 
-    { "id": "chop_wood",       "trade": "laborer",    "inputs": {}, "outputs": { "wood": 6 },     "tool": "axe",     "wear": 1, "handFactor": 0.5 },
-    { "id": "quarry_stone",    "trade": "laborer",    "inputs": {}, "outputs": { "stone": 4 },    "tool": "pickaxe", "wear": 1, "handFactor": 0.25 },
-    { "id": "mine_ore",        "trade": "laborer",    "inputs": {}, "outputs": { "iron_ore": 4 }, "tool": "pickaxe", "wear": 1, "handFactor": 0.15 },
+    { "id": "chop_wood",       "trade": "lumberjack", "inputs": {}, "outputs": { "wood": 6 },     "tool": "axe",     "wear": 1, "handFactor": 0.5 },
+    { "id": "quarry_stone",    "trade": "miner",      "inputs": {}, "outputs": { "stone": 4 },    "tool": "pickaxe", "wear": 1, "handFactor": 0.25 },
+    { "id": "mine_ore",        "trade": "miner",      "inputs": {}, "outputs": { "iron_ore": 4 }, "tool": "pickaxe", "wear": 1, "handFactor": 0.15 },
+
+    { "id": "pick_berries",     "trade": "forager",   "inputs": {}, "outputs": { "berries": 6 } },
+    { "id": "gather_mushrooms", "trade": "forager",   "inputs": {}, "outputs": { "mushrooms": 5 } },
+    { "id": "gather_herbs",     "trade": "forager",   "inputs": {}, "outputs": { "herbs": 3 } },
+    { "id": "catch_fish",       "trade": "fisherman", "inputs": {}, "outputs": { "fish": 7 } },
 
     { "id": "smelt_iron",      "trade": "blacksmith", "inputs": { "iron_ore": 2, "wood": 1 },   "outputs": { "iron_ingot": 1 } },
     { "id": "forge_hoe",       "trade": "blacksmith", "inputs": { "iron_ingot": 1, "wood": 1 }, "outputs": { "hoe": 1 } },

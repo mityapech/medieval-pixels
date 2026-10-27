@@ -3,9 +3,9 @@
 export type GoodId = string;
 export type CitizenId = number;
 export type BatchId = number;
-export type Trade = 'farmer' | 'baker' | 'laborer' | 'blacksmith' | 'merchant';
+export type Trade = 'farmer' | 'baker' | 'lumberjack' | 'miner' | 'forager' | 'fisherman' | 'builder' | 'blacksmith' | 'merchant';
 
-export const TRADES: readonly Trade[] = ['farmer', 'baker', 'laborer', 'blacksmith', 'merchant'];
+export const TRADES: readonly Trade[] = ['farmer', 'baker', 'lumberjack', 'miner', 'forager', 'fisherman', 'builder', 'blacksmith', 'merchant'];
 
 export interface GoodDef {
   id: GoodId;
@@ -79,6 +79,17 @@ export interface TownConfig {
     startShare: number;
   };
   comfort: { thresholdDays: number; spendShare: number; basket: Record<GoodId, number> };
+  /** Buildings wear down each day; their owners pay builders to repair them with these materials. */
+  construction: {
+    materials: Record<GoodId, number>;
+    repairBelow: number;
+    repairAmount: number;
+    decayPerDay: { home: number; public: number };
+    /** A builder's day of labour is worth this many meals at current food prices. */
+    labourMeals: number;
+    newHouseMaterials: Record<GoodId, number>;
+    newHouseDays: number;
+  };
   service: {
     /** A servant's daily wage, in meals at the current cheapest food price. */
     wageMeals: number;
@@ -116,6 +127,8 @@ export interface TownConfig {
   };
   jobChange: {
     everyDays: number;
+    /** People judge what a trade earns over this many days (their coins then versus now). */
+    judgeOverDays: number;
     chance: number;
     minGain: number;
     quitWhenSavedDays: number;
@@ -242,6 +255,8 @@ export interface Citizen extends Account, Holder {
     imported?: Record<GoodId, number>;
     exported?: Record<GoodId, number>;
     visited?: number;
+    /** Builders: the building they worked on today. */
+    job?: string;
   };
   /** Coins at the start of each of the last days, used for job decisions. */
   coinHistory: number[];
@@ -413,6 +428,8 @@ export interface World {
   households: Household[];
   /** Terrain, roads and buildings, generated from the seed (see sim/land.ts). */
   land: Land;
+  /** Condition of each building (0 ruined, 100 new), by place key. See sim/construction.ts. */
+  buildings: Record<string, { condition: number }>;
   treasury: Account;
   /** The town's public store of grain and vegetables, bought cheaply in good times and sold at cost in a shortage. */
   granary: Holder;

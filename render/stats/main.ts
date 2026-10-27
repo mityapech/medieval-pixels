@@ -62,7 +62,8 @@ const goodGroups = (value: (g: string) => Value): Group[] =>
   GOOD_GROUPS.map(({ name, goods }) => ({ name, series: goods.map((g, k) => ({ label: goodName(g), slot: k + 1, value: value(g) })) }));
 
 const JOBS: [string, string][] = [
-  ['farmer', 'Farmers'], ['baker', 'Bakers'], ['laborer', 'Laborers'], ['blacksmith', 'Blacksmiths'],
+  ['farmer', 'Farmers'], ['baker', 'Bakers'], ['lumberjack', 'Lumberjacks'], ['miner', 'Miners'], ['forager', 'Foragers'],
+  ['fisherman', 'Fishermen'], ['builder', 'Builders'], ['blacksmith', 'Blacksmiths'],
   ['merchant', 'Merchants'], ['guard', 'Guards'], ['priest', 'Priests'], ['servant', 'Servants'],
 ];
 

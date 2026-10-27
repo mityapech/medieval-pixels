@@ -29,9 +29,13 @@ const pickTalk = <T>(world: World, items: readonly T[]): T => items[Math.floor(t
 
 // ---------- words ----------
 
-const WORK: Record<Trade, string> = { farmer: 'farming', baker: 'baking', laborer: 'labouring', blacksmith: 'smithing', merchant: 'trading' };
+const WORK: Record<Trade, string> = {
+  farmer: 'farming', baker: 'baking', lumberjack: 'felling timber', miner: 'mining', forager: 'foraging', fisherman: 'fishing',
+  builder: 'building', blacksmith: 'smithing', merchant: 'trading',
+};
 const WORKPLACE: Record<Trade, string> = {
-  farmer: 'the fields', baker: 'the bakery', laborer: 'the woods and quarry', blacksmith: 'the smithy', merchant: "the merchants' row",
+  farmer: 'the fields', baker: 'the bakery', lumberjack: 'the woods', miner: 'the quarry', forager: 'the wildwood',
+  fisherman: 'the lake', builder: 'the building sites', blacksmith: 'the smithy', merchant: "the merchants' row",
 };
 const first = (c: Citizen) => c.name.split(' ')[0]!;
 const goodName = (data: GameData, g: string) => data.goods.get(g)!.name;
@@ -138,7 +142,7 @@ function replyKind(world: World, data: GameData, topic: string, params: Record<s
   if (has('smith') && b.trade === 'blacksmith') return 'smith';
   if (has('seller') && typeof params.goodId === 'string' && b.prices[params.goodId] !== undefined) return 'seller';
   if (has('farmer') && b.trade === 'farmer') return 'farmer';
-  if (has('laborer') && b.trade === 'laborer') return 'laborer';
+  if (has('lumberjack') && b.trade === 'lumberjack') return 'lumberjack';
   if (has('guard') && b.office === 'guard') return 'guard';
   if (has('same_trade') && (b.trade === params.to || WORK[b.trade as Trade] === params.trade)) return 'same_trade';
   if (has('envious') && struggling(world, data, b)) return 'envious';

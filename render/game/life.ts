@@ -88,6 +88,20 @@ export class Life {
     this.areas.set('wall', walls);
     this.areas.set('canal', bank.filter((i) => Math.hypot((i % W) - mx, Math.floor(i / W) - my) < 14).concat(bank).slice(0, 400));
     this.areas.set('play', play.length ? play : bank);
+    // Open water on the lake for the fishing boats: water with plenty of water all around it, not the canal.
+    const lake: number[] = [];
+    for (let i = 0; i < W * H; i++) {
+      if (terrain[i] !== 'water') continue;
+      const x = i % W;
+      const y = Math.floor(i / W);
+      let n = 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (terrain[(y + dy) * W + x + dx] === 'water') n++;
+      if (n >= 24) lake.push(i);
+    }
+    const jetty = places.get('work:fisherman');
+    const jx = jetty ? jetty.x + jetty.w / 2 : mx;
+    const jy = jetty ? jetty.y + jetty.h / 2 : my;
+    this.areas.set('lake', lake.filter((i) => Math.hypot((i % W) - jx, Math.floor(i / W) - jy) < 12));
   }
 
   /** Called each new day: everyone's plan for the day. */
@@ -106,7 +120,9 @@ export class Life {
     const child = c.age < this.data.town.workingAge.adult;
     const elder = c.age >= this.data.town.workingAge.elder;
     // People set off at their own time in the morning; merchants, guards and priests work through market hours.
-    const start = 0.29 + hash(c.id, this.world.day, 1) * 0.04 + (child ? 0.02 : 0) + (elder ? 0.05 : 0);
+    // Fishermen are out on the water before dawn.
+    const start = c.trade === 'fisherman' ? 0.2 + hash(c.id, this.world.day, 1) * 0.02
+      : 0.29 + hash(c.id, this.world.day, 1) * 0.04 + (child ? 0.02 : 0) + (elder ? 0.05 : 0);
     const end = child ? 0.72 : c.office || c.trade === 'merchant' ? 0.75 : !c.trade ? 0.7 : 0.55;
     if (t < start || t >= end) return undefined;
     const step = Math.min(plan.length - 1, Math.floor(((t - start) / (end - start)) * plan.length));
@@ -115,7 +131,9 @@ export class Life {
     const at = this.spot(area, c.id, step);
     // A scattered area (canal bank, docks, wall...) is headed for at the exact tile of the spot, so nobody arrives
     // on one bank and then tries to walk straight across the water to the other.
-    const dest = this.places.has(area) ? area : `tile:${Math.floor(at.y / TILE) * this.W + Math.floor(at.x / TILE)}`;
+    const tile = Math.floor(at.y / TILE) * this.W + Math.floor(at.x / TILE);
+    // Out on the lake means rowing a boat there; elsewhere, walking to the exact tile.
+    const dest = this.places.has(area) ? area : area === 'lake' ? `boat:${tile}` : `tile:${tile}`;
     // Only running games are played on the run; watching the guards or skipping stones is done standing.
     const mode = child && /^(Playing|Chasing|Racing)/.test(task.task) ? 'play' : 'still';
     return { task: task.task, dest, x: at.x, y: at.y, mode };
@@ -128,6 +146,7 @@ export class Life {
       case 'home': return home;
       case 'employer': return c.employerHousehold !== null ? `home:${c.employerHousehold}` : home;
       case 'market': case 'church': case 'granary': return task.where;
+      case 'site': return c.today.job && this.places.has(c.today.job) ? c.today.job : c.trade ? `work:${c.trade}` : home;
       default: return this.areas.get(task.where)?.length ? task.where : 'market';
     }
   }
@@ -145,11 +164,19 @@ export class Life {
     return { x: ((i % this.W) + 0.3 + hash(id, salt, 17) * 0.4) * TILE, y: (Math.floor(i / this.W) + 0.3 + hash(id, salt, 19) * 0.4) * TILE };
   }
 
-  private passable(x: number, y: number): boolean {
+  private passable(x: number, y: number, dest = ''): boolean {
     const tx = Math.floor(x / TILE);
     const ty = Math.floor(y / TILE);
     if (tx < 0 || ty < 0 || tx >= this.W || ty >= this.H) return false;
+    if (dest.startsWith('boat:') && this.world.land.terrain[ty * this.W + tx] === 'water') return true;
     return this.cost[ty * this.W + tx]! < 60;
+  }
+
+  /** Whether a point is on open water (someone there is in a boat). */
+  onWater(x: number, y: number): boolean {
+    const tx = Math.floor(x / TILE);
+    const ty = Math.floor(y / TILE);
+    return this.world.land.terrain[ty * this.W + tx] === 'water' && !this.world.land.docks.includes(ty * this.W + tx) && !this.world.land.roads.includes(ty * this.W + tx);
   }
 
   /** Walking cost from a point to a destination (0 inside it). */
@@ -178,7 +205,10 @@ export class Life {
     const place = this.places.get(dest);
     const sources = place
       ? Array.from({ length: place.w * place.h }, (_, k) => (place.y + Math.floor(k / place.w)) * W + place.x + (k % place.w))
-      : dest.startsWith('tile:') ? [Number(dest.slice(5))] : this.areas.get(dest) ?? [];
+      : dest.startsWith('tile:') || dest.startsWith('boat:') ? [Number(dest.slice(5))] : this.areas.get(dest) ?? [];
+    // In a boat, open water is easy going (from the docks out onto the lake).
+    const boat = dest.startsWith('boat:');
+    const costAt = (n: number) => (boat && this.world.land.terrain[n] === 'water' ? 1.2 : this.cost[n]!);
     const heap = new MinHeap();
     for (const s of sources) { f[s] = 0; heap.push(s, 0); }
     while (heap.size) {
@@ -191,7 +221,7 @@ export class Life {
         const ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
         const n = ny * W + nx;
-        const nd = d + this.cost[n]!;
+        const nd = d + costAt(n);
         if (nd < f[n]!) { f[n] = nd; heap.push(n, nd); }
       }
     }
@@ -258,7 +288,7 @@ export class Life {
           const nx = m.x + (dx / d) * step;
           const ny = m.y + (dy / d) * step;
           // Pottering about never takes anyone into the water or up onto the wall.
-          if (this.passable(nx, ny) || !this.passable(m.x, m.y)) { m.x = nx; m.y = ny; }
+          if (this.passable(nx, ny, to.dest) || !this.passable(m.x, m.y, to.dest)) { m.x = nx; m.y = ny; }
         }
       } else {
         const at = this.walk(m, to.dest, { x: gx, y: gy }, walk);

@@ -99,6 +99,8 @@ export function keepAmount(world: World, data: GameData, c: Citizen, good: GoodI
     if (r.inputs[good]) return Infinity;
     if (r.tool === good) return 1;
   }
+  // Builders keep their building materials for the next job.
+  if (c.trade === 'builder' && data.town.construction.materials[good]) return Infinity;
   // Anyone selling food (bakers, farmers, merchants) keeps enough for their own household.
   if (isFood(data, good)) return foodTarget(world, data, c);
   return householdNeedTarget(world, data, c, good);

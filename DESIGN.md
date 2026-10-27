@@ -69,7 +69,7 @@ Roughly 40 workers plus dependents. Some people can be unemployed, which gives t
 - There are no hand-made rescues. People change work only by the same rules, for the same reasons.
 - Every few days (3 by default), a worker who lost money looks at what each trade earns and what it costs to start (tools, a day of inputs, a merchant's stock money), and moves to the best trade they can **afford**.
 - People judge a trade by the few practitioners they know (kin first, then whoever they meet), not by a town-wide average. Because everyone sees a different sample, the town does not stampede into one trade at once.
-- Laborer is the trade anyone can start with nothing, by hand if they have no tools, so a failing farmer, baker or merchant naturally steps down to it. People can also move up when they have saved enough.
+- Lumberjacking and foraging can be started with nothing (wood by hand, berries need no tools), so a failing farmer, baker or merchant naturally steps down to them. People judge a trade over a full week, and nobody changes in their first week. People can also move up when they have saved enough.
 - An unemployed adult takes up work when the household runs short of money for food or firewood, and now and then when a trade is clearly paying well. A worker in a comfortable household may stop working.
 - Moving up to a better trade needs a large gap. Guards, priests and servants go back to a trade when one clearly pays better than their wage.
 
@@ -89,18 +89,23 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 |---|---|---|---|
 | Farmer | wheat, vegetables, fruit | farmland, tools (wear out) | Baker, Merchant |
 | Baker | bread, vegetable pie, fruit tart | wheat, vegetables, fruit, wood (oven fuel) | shop customers, Merchant |
-| Laborer | wood, stone, iron ore; builds houses and other buildings | tools (axe, pickaxe), or bare hands at a fraction of the output; wood, stone, nails and fittings for building | Blacksmith, Baker, households (firewood), Merchant, building owners |
+| Lumberjack | wood | an axe (or bare hands, half as much) | Blacksmith, Baker, households (firewood), builders, Merchant |
+| Miner | iron ore, stone | a pickaxe (by hand, very little) | Blacksmith, builders, Merchant |
+| Forager | berries, mushrooms, herbs from the wildwood | nothing | households, Merchant |
+| Fisherman | fish, rowing out from the docks before dawn | a boat | households, Merchant |
+| Builder | repairs and new buildings | wood, stone, nails and fittings, bought per job | building owners and the treasury |
 | Blacksmith | iron ingots, tools, nails and fittings | iron ore, wood (fuel) | Farmer, Laborer, construction |
 | Merchant | nothing (only trades) | coins, carrying capacity | anyone |
 
 ### Dependencies
 
-- Tools wear out. Farmers and laborers keep needing the blacksmith.
-- The blacksmith needs iron ore and wood from the laborer.
+- Tools wear out. Farmers, lumberjacks and miners keep needing the blacksmith.
+- The blacksmith needs iron ore from the miner and wood from the lumberjack.
 - Bakers need farmers. Everyone needs bakers.
 - Buildings need wood, stone, and the blacksmith's nails.
 - The merchant moves goods between all of them.
-- Every household burns firewood each day for cooking and warmth (part of the shelter need), so the laborer always has some customers.
+- Every household burns firewood each day for cooking and warmth (part of the shelter need), so the lumberjack always has some customers.
+- Buildings wear down every day. Owners (households for their homes, the treasury for the town's buildings) pay builders to repair them; a builder buys the wood, stone and nails for each job and charges materials plus a day's labour. Poor households let their homes run down. Country work sites do not decay (`sim/construction.ts`).
 
 ## 6. Goods and traceability
 

@@ -4,7 +4,7 @@ import routines from '../data/routines.json';
 import { createWorld, dayPlan, loadData, runDays, specialityOf, tick } from '../sim/index';
 
 const data = loadData();
-const WHERE = new Set(['work', 'home', 'market', 'church', 'granary', 'docks', 'gate', 'wall', 'canal', 'play', 'employer']);
+const WHERE = new Set(['work', 'home', 'market', 'church', 'granary', 'docks', 'gate', 'wall', 'canal', 'play', 'employer', 'lake', 'site']);
 
 describe('day plans', () => {
   it('every recipe has steps, and every step names a known kind of place', () => {
