@@ -316,6 +316,16 @@ export interface DayReport {
   jobChanges: { id: CitizenId; name: string; from: Trade | null; to: Trade | null; reason: string }[];
   /** Deaths, new heads, children moving to kin: family events worth printing. */
   familyEvents: string[];
+  /** Units made in town today, by good (imports not included). */
+  produced: Record<GoodId, number>;
+  households: number;
+  ages: { children: number; adults: number; elders: number };
+  /** Coins per living household: median, mean, and the shares held by the richest 3 and the poorer half. */
+  wealth: { median: number; mean: number; top3Share: number; poorHalfShare: number };
+  /** People in each occupation: the five trades, guard, priest, servant, and unemployed working-age adults. */
+  jobs: Record<string, number>;
+  /** Coins moved today by kind. */
+  flows: { tax: number; churchAlms: number; charity: number; kinSupport: number; servantWages: number; granary: number };
 }
 
 export interface World {

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Town Ledger</title>
+    <link rel="stylesheet" href="/render/stats/stats.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="masthead">
+        <div>
+          <h1>Town Ledger</h1>
+          <p class="sub">Run the town and watch it over time. Every number comes from the simulation in <code>sim/</code>.</p>
+        </div>
+        <form class="controls" id="controls">
+          <label>Seed <input id="seed" type="number" min="1" step="1" value="1" /></label>
+          <label>Days
+            <select id="days">
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="365">365</option>
+            </select>
+          </label>
+          <button type="submit" id="run">Run</button>
+          <button type="button" id="random" class="ghost">Random seed</button>
+          <span id="status" class="status" role="status"></span>
+        </form>
+      </header>
+      <section class="tiles" id="tiles" aria-label="Summary"></section>
+      <section class="events" aria-label="Events">
+        <h2>Events</h2>
+        <ul id="events" class="chips"></ul>
+      </section>
+      <section class="grid" id="charts"></section>
+    </main>
+    <script type="module" src="/render/stats/main.ts"></script>
+  </body>
+</html>

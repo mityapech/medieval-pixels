@@ -12,6 +12,7 @@ import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
+import { TRADES } from './types';
 
 export function tick(world: World, data: GameData): DayReport {
   world.day++;
@@ -23,7 +24,13 @@ export function tick(world: World, data: GameData): DayReport {
   const starved = eatPhase(world, data, familyEvents);
   keepWarm(world, data);
   const jobChanges = findWork(world, data);
+  const firstBatch = world.nextBatchId;
   for (const c of world.citizens) work(world, data, c);
+  const produced: Record<string, number> = {};
+  for (let id = firstBatch; id < world.nextBatchId; id++) {
+    const b = world.batches.get(id)!;
+    if (b.maker >= 0) produced[b.good] = (produced[b.good] ?? 0) + b.qty;
+  }
   const tally = newTally();
   tradePhase(world, data, tally);
   stockGranary(world, data);
@@ -65,9 +72,51 @@ export function tick(world: World, data: GameData): DayReport {
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,
     familyEvents,
+    produced,
+    ...townStatistics(world, data),
   };
   world.reports.push(report);
   return report;
+}
+
+/** Households, ages, wealth spread, occupations and today's money flows, for the stats page. */
+function townStatistics(world: World, data: GameData): Pick<DayReport, 'households' | 'ages' | 'wealth' | 'jobs' | 'flows'> {
+  const living = world.citizens.filter((c) => c.alive);
+  const { adult, elder } = data.town.workingAge;
+  const purses = world.households.map((h) => livingMembers(world, h)).filter((m) => m.length)
+    .map((m) => m.reduce((s, c) => s + c.coins, 0)).sort((a, b) => a - b);
+  const total = purses.reduce((s, p) => s + p, 0);
+  const share = (part: number[]) => (total > 0 ? part.reduce((s, p) => s + p, 0) / total : 0);
+  const jobs: Record<string, number> = {};
+  for (const t of TRADES) jobs[t] = living.filter((c) => c.trade === t).length;
+  for (const o of ['guard', 'priest', 'servant'] as const) jobs[o] = living.filter((c) => c.office === o).length;
+  jobs.unemployed = living.filter((c) => isWorkingAge(data, c) && !c.trade && !c.office).length;
+  const flows = { tax: 0, churchAlms: 0, charity: 0, kinSupport: 0, servantWages: 0, granary: 0 };
+  for (let i = world.ledger.length - 1; i >= 0 && world.ledger[i]!.day === world.day; i--) {
+    const { memo, amount, from } = world.ledger[i]!;
+    if (memo === 'market tax' || memo === 'hearth tax') flows.tax += amount;
+    else if (memo === 'alms') flows.churchAlms += amount;
+    else if (memo.startsWith('alms from')) flows.charity += amount;
+    else if (memo.startsWith('kin support')) flows.kinSupport += amount;
+    else if (memo === 'servant wage') flows.servantWages += amount;
+    else if (memo.startsWith('granary sells') || (memo.startsWith('granary buys') && from === 'treasury')) flows.granary += amount;
+  }
+  return {
+    households: purses.length,
+    ages: {
+      children: living.filter((c) => c.age < adult).length,
+      adults: living.filter((c) => c.age >= adult && c.age < elder).length,
+      elders: living.filter((c) => c.age >= elder).length,
+    },
+    wealth: {
+      median: purses.length ? purses[Math.floor(purses.length / 2)]! : 0,
+      mean: purses.length ? total / purses.length : 0,
+      top3Share: share(purses.slice(-3)),
+      poorHalfShare: share(purses.slice(0, Math.floor(purses.length / 2))),
+    },
+    jobs,
+    flows,
+  };
 }
 
 export function runDays(world: World, data: GameData, days: number, onDay?: (r: DayReport) => void): void {

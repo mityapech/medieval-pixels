@@ -6,7 +6,9 @@
   "scripts": {
     "sim": "vite-node sim/cli.ts --",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
@@ -14,5 +16,8 @@
     "vite": "^6.4.5",
     "vite-node": "^3.2.4",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.7"
   }
 }
