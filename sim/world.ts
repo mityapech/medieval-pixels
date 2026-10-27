@@ -18,7 +18,7 @@ export function createWorld(data: GameData, seed = 1): World {
     rngState: seed,
     citizens: [],
     households: [],
-    land: { width: 0, height: 0, terrain: [], roads: [], river: false, places: [] },
+    land: { width: 0, height: 0, terrain: [], roads: [], boardwalks: [], walls: [], gates: [], docks: [], river: false, places: [] },
     batches: new Map(),
     nextBatchId: 1,
     ledger: [],

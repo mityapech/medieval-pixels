@@ -36,8 +36,8 @@ function phase(t: number): 'night' | 'morning' | 'work' | 'market' | 'evening' {
 
 const SPRITES = spritesJson as { places: Record<string, string>; people: Record<string, string> };
 const PLACEHOLDER: Record<string, number> = {
-  market: 0xd9c9a3, church: 0xb9b4c9, granary: 0xc9a66b, fields: 0x9fc27a, woods: 0x5f8a5a,
-  bakery: 0xe0a86b, smithy: 0x8a8a8a, merchants: 0xd4b483, house: 0xc89b74, townhouse: 0xb07d5a,
+  market: 0xcbb98f, church: 0x9c97ab, granary: 0xa77e48, fields: 0xc2a24a, woods: 0x7a5a2c,
+  bakery: 0xb9733e, smithy: 0x5f5d58, merchants: 0xa98756, house: 0x8a6440, townhouse: 0x6e4a2e,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
@@ -53,7 +53,7 @@ function spriteFor(name: string): { sprite: string; colour: number } {
 // ---------- scene ----------
 
 const app = new Application();
-await app.init({ resizeTo: window, background: '#6f8f5a', antialias: false, autoDensity: true, resolution: devicePixelRatio });
+await app.init({ resizeTo: window, background: '#8c8a4c', antialias: false, autoDensity: true, resolution: devicePixelRatio });
 document.getElementById('map')!.append(app.canvas);
 
 const scene = new Container();
@@ -64,20 +64,49 @@ const peopleLayer = new Container();
 const bubbleLayer = new Container();
 scene.addChild(ground, placeLayer, peopleLayer, bubbleLayer);
 
-// The land: grass with a little variation, the river, woods, rock and the roads, all generated for this seed.
-const TERRAIN_COLOUR = { grass: 0x7fa36a, water: 0x4f86b5, forest: 0x46703f, rock: 0x8d8a80 } as const;
+// The land, in an autumn palette: golden grass, red and orange woods, grey rock, the lake and canal, dirt roads,
+// plank boardwalks and bridges inside the wall, docks on the lake, and the stone wall with its gates.
+const TERRAIN_COLOUR = { grass: 0xa8a35a, water: 0x3f6f8f, forest: 0x6b5a2e, rock: 0x7d7b74 } as const;
+const LEAVES = [0xc9662b, 0xd9952f, 0xa83a26, 0xb88a2c];
+const tileAt = (i: number) => ({ x: (i % MAP_W) * TILE, y: Math.floor(i / MAP_W) * TILE });
 world.land.terrain.forEach((t, i) => {
-  const x = i % MAP_W;
-  const y = Math.floor(i / MAP_W);
-  const shade = t === 'grass' && (x * 7 + y * 13) % 5 === 0 ? 0x78996a : TERRAIN_COLOUR[t];
-  ground.rect(x * TILE, y * TILE, TILE, TILE).fill(shade);
-  if (t === 'forest') ground.circle(x * TILE + 10 + ((x * 5 + y) % 12), y * TILE + 12 + ((y * 3 + x) % 9), 7).fill(0x365a31);
+  const { x, y } = tileAt(i);
+  const tx = x / TILE;
+  const ty = y / TILE;
+  const shade = t === 'grass' && (tx * 7 + ty * 13) % 5 === 0 ? 0x9e9a52 : TERRAIN_COLOUR[t];
+  ground.rect(x, y, TILE, TILE).fill(shade);
+  if (t === 'forest') {
+    for (let k = 0; k < 2; k++) {
+      ground.circle(x + 8 + ((tx * 5 + ty + k * 11) % 16), y + 9 + ((ty * 3 + tx + k * 7) % 14), 7 - k).fill(LEAVES[(tx + ty * 3 + k) % LEAVES.length]!);
+    }
+  }
+  if (t === 'water' && (tx + ty * 2) % 4 === 0) ground.rect(x + 6, y + 14, 12, 2).fill({ color: 0xffffff, alpha: 0.15 });
 });
+const boardwalks = new Set(world.land.boardwalks);
 for (const r of world.land.roads) {
-  const x = r % MAP_W;
-  const y = Math.floor(r / MAP_W);
+  const { x, y } = tileAt(r);
   const onWater = world.land.terrain[r] === 'water';
-  ground.rect(x * TILE, y * TILE, TILE, TILE).fill(onWater ? 0x8a6a45 : 0xcdb58a); // a wooden bridge over the river
+  if (onWater || boardwalks.has(r)) {
+    // Planks: a bridge over the water, a boardwalk inside the wall.
+    ground.rect(x, y, TILE, TILE).fill(onWater ? 0x6e4e2c : 0x8c6a42);
+    for (let k = 6; k < TILE; k += 8) ground.rect(x, y + k, TILE, 1.5).fill({ color: 0x3b2a18, alpha: 0.45 });
+  } else {
+    ground.rect(x, y, TILE, TILE).fill(0xb79a68);
+  }
+}
+for (const d of world.land.docks) {
+  const { x, y } = tileAt(d);
+  ground.rect(x + 4, y, TILE - 8, TILE).fill(0x6e4e2c);
+  for (let k = 4; k < TILE; k += 7) ground.rect(x + 4, y + k, TILE - 8, 1.5).fill({ color: 0x3b2a18, alpha: 0.5 });
+}
+for (const t of world.land.walls) {
+  const { x, y } = tileAt(t);
+  ground.rect(x, y, TILE, TILE).fill(0x6a675f).rect(x, y, TILE, TILE).stroke({ width: 1, color: 0x3d3b36, alpha: 0.8 });
+  ground.rect(x + 3, y + 3, 10, 6).fill(0x7c7970).rect(x + 17, y + 13, 11, 6).fill(0x7c7970).rect(x + 5, y + 22, 12, 6).fill(0x7c7970);
+}
+for (const g of world.land.gates) {
+  const { x, y } = tileAt(g);
+  ground.rect(x, y, TILE, TILE).fill(0x6a675f).rect(x + 6, y + 4, TILE - 12, TILE - 4).fill(0x3a2a1a);
 }
 for (let x = 0; x <= MAP_W; x++) ground.rect(x * TILE, 0, 1, MAP_H * TILE).fill({ color: 0x000000, alpha: 0.04 });
 for (let y = 0; y <= MAP_H; y++) ground.rect(0, y * TILE, MAP_W * TILE, 1).fill({ color: 0x000000, alpha: 0.04 });
@@ -94,7 +123,8 @@ for (const p of places.values()) {
   g.eventMode = 'static';
   g.cursor = 'pointer';
   g.on('pointertap', () => inspectPlace(p));
-  const t = label(p.label, p.sprite === 'house' ? 9 : 12);
+  const bright = ((colour >> 16) & 255) * 0.3 + ((colour >> 8) & 255) * 0.59 + (colour & 255) * 0.11;
+  const t = label(p.label, p.sprite === 'house' || p.sprite === 'townhouse' ? 9 : 12, bright < 120 ? 0xf3ead8 : 0x1a1a19);
   t.position.set(p.x * TILE + 6, p.y * TILE + 5);
   placeLayer.addChild(g, t);
 }

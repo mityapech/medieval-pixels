@@ -302,6 +302,14 @@ export interface Land {
   terrain: Terrain[];
   /** Tile indexes (y * width + x) that are road. */
   roads: number[];
+  /** Road tiles inside the town wall, laid as wooden boardwalks. */
+  boardwalks: number[];
+  /** Tiles of the town wall, and the gates where roads pass through it. */
+  walls: number[];
+  gates: number[];
+  /** Wooden piers out into the lake. */
+  docks: number[];
+  /** Whether water runs through the town (the canal). */
   river: boolean;
   places: Place[];
 }

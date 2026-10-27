@@ -22,7 +22,7 @@ This file is the spec. Build to it, and update it whenever a rule changes.
 ## 3. World and time
 
 - One town on a grid map, divided into **plots** (see section 8).
-- The land and town are generated from the seed (`sim/land.ts`): terrain, water, woods and rock, roads from the market to the work sites and to the neighbouring towns, and buildings placed on suitable ground. Richer households live nearer the market, farmers towards the fields, laborers towards the woods. Generation uses its own random stream, so the map never changes the economy. The same seed always gives the same town.
+- The land and town are generated from the seed (`sim/land.ts`), as a walled lakeside town: a lake on one edge, a canal from it through the middle of town with plank bridges and boardwalk streets, docks on the shore, and a stone wall with gates where the roads to the neighbouring towns come in. Inside the wall: the market by the canal, church, granary, merchants' row, bakery, and the smithy against the wall. Outside: fields on open ground, woods and quarry in the forest. Houses of mixed sizes are packed irregularly along streets and against each other; the well-off take townhouses near the market and canal, and the poorest may build cottages outside the wall near their work. The look is autumnal (golden grass, red and orange woods). Generation uses its own random stream, so the map never changes the economy, and the same seed always gives the same town.
 - **Time:** one in-game day is about 4 real minutes (assumed default, adjustable in settings). The simulation must also run faster than real time for automated tests.
 - Seasons, weather, and aging are out of scope for v0.
 
