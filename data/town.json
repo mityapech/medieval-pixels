@@ -36,7 +36,8 @@
   },
   "service": {
     "wageMeals": 3,
-    "affordDays": 20
+    "affordDays": 20,
+    "membersForSecond": 6
   },
   "startFoodDays": 4,
   "foodStockDays": 2,
@@ -74,7 +75,9 @@
     "wageBudgetShare": 0.7,
     "churchGrantShare": 0.2,
     "reviewEveryDays": 7,
-    "maxHiresPerReview": 1
+    "maxHiresPerReview": 1,
+    "peoplePerGuard": 20,
+    "peoplePerPriest": 30
   },
   "neighbours": {
     "names": ["Ashford", "Wealdham", "Brackenbury"],

@@ -84,6 +84,8 @@ export interface TownConfig {
     wageMeals: number;
     /** A household takes on another servant only if its spare savings cover this many days of the wage. */
     affordDays: number;
+    /** A household this size or larger may keep a second servant; smaller ones keep at most one. */
+    membersForSecond: number;
   };
   startFoodDays: number;
   foodStockDays: number;
@@ -140,6 +142,9 @@ export interface TownConfig {
     reviewEveryDays: number;
     /** New posts of each kind filled per review at most. */
     maxHiresPerReview: number;
+    /** The town wants about one guard per this many people, and one priest per peoplePerPriest. */
+    peoplePerGuard: number;
+    peoplePerPriest: number;
   };
   neighbours: {
     names: string[];

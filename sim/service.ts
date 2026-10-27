@@ -47,23 +47,25 @@ export function payServants(world: World, data: GameData): string[] {
   return events;
 }
 
-/** Weekly: households with savings well above comfort take on servants, the poorest willing adults first. */
+/** Weekly: households with savings well above comfort take on a servant (two for a large home), from idle adults in the poorest homes. */
 export function hireServants(world: World, data: GameData): string[] {
   const { service } = data.town;
   const events: string[] = [];
   const homes = world.households.filter((h) => livingMembers(world, h).length).sort((a, b) => purseOf(world, b) - purseOf(world, a));
-  const weekNet = (c: Citizen) => c.coins - (c.coinHistory[0] ?? c.coins);
   for (const h of homes) {
     const payer = richest(world, h);
     if (!payer) continue;
     const spare = purseOf(world, h) - comfortLevel(world, data, h);
-    const affordable = Math.floor(spare / (servantWage(data, payer) * service.affordDays));
+    // A household needs only so much help: a servant for a well-off home, a second only for a large one.
+    const needed = livingMembers(world, h).length >= service.membersForSecond ? 2 : 1;
+    const affordable = Math.min(needed, Math.floor(spare / (servantWage(data, payer) * service.affordDays)));
     const current = world.citizens.filter((c) => c.alive && c.office === 'servant' && c.employerHousehold === h.id).length;
     if (affordable <= current) continue;
     const homePurse = (c: Citizen) => purseOf(world, world.households[c.householdId]!);
     const candidates = world.citizens
-      .filter((c) => c.alive && c.householdId !== h.id && !c.office && isWorkingAge(data, c) && (!c.trade || weekNet(c) < 0))
-      .sort((a, b) => Number(!!a.trade) - Number(!!b.trade) || homePurse(a) - homePurse(b));
+      // Service draws on idle adults only; it does not pull people out of productive trades.
+      .filter((c) => c.alive && c.householdId !== h.id && !c.office && !c.trade && isWorkingAge(data, c))
+      .sort((a, b) => homePurse(a) - homePurse(b));
     const c = candidates[0];
     if (!c) continue;
     const was = c.trade;

@@ -94,7 +94,12 @@ export function reviewPosts(world: World, data: GameData): string[] {
   const avgWage = a.guardWage * a.guardShare + a.priestWage * (1 - a.guardShare);
   const posts = Math.floor(budget / avgWage);
   const priests = posts > 0 ? Math.max(1, posts - Math.round(posts * a.guardShare)) : 0;
-  const want: Record<'guard' | 'priest', number> = { guard: posts - priests, priest: priests };
+  // The town staffs posts for what it needs (a few guards and priests for its size), as far as it can afford them.
+  const people = world.citizens.filter((c) => c.alive).length;
+  const want: Record<'guard' | 'priest', number> = {
+    guard: Math.min(posts - priests, Math.ceil(people / a.peoplePerGuard)),
+    priest: Math.min(priests, Math.ceil(people / a.peoplePerPriest)),
+  };
 
   const events: string[] = [];
   // Unemployed adults from the poorest households first, then workers whose trade lost them money this week.

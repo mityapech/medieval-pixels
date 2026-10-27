@@ -126,7 +126,7 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 
 ## 7a. Town authority, militia and church
 
-- The **treasury** collects the market tax. Each week it decides how many paid posts it can afford: **guards** (the militia) and **priests** (the church). Posts go to unemployed adults, from struggling households first. If money runs short, posts are cut.
+- The **treasury** collects the market tax. Each week it staffs paid posts for what the town needs, about one **guard** (the militia) per 20 people and one **priest** (the church) per 30, as far as it can afford them. Tax income limits posts but never creates them. Posts go to unemployed adults, from struggling households first. If money runs short, posts are cut.
 - The treasury keeps two weeks of wages and passes the rest to the **church** a little each day. The church gives **alms** (coins for food) to households where someone is going hungry or the purse is empty.
 - The hearth tax is progressive: a small daily share of a household's savings above 10 days of food. The poor pay nothing.
 - The **public granary**: in good times the authority buys cheap wheat and vegetables (up to a target store) from what producers could not sell, and in a shortage sells them at cost. The town starts with full stores.
@@ -135,7 +135,7 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 
 - When a household cannot afford its food and firewood, its own members chip in first, then kin in other households who are comfortable.
 - If someone has already gone hungry, the comfortable give **alms** directly, as a religious duty.
-- **Domestic service** (the first form of hiring): households with savings well above comfort take on servants from poorer households, the idle first, and pay a daily wage worth a few meals. A household that can no longer pay lets the servant go.
+- **Domestic service** (the first form of hiring): households with savings well above comfort take on a servant (a second only for a household of six or more) from idle adults in poorer households, and pay a daily wage worth a few meals. Service never pulls people out of a productive trade. A household that can no longer pay lets the servant go.
 - The **militia** protects the roads and the town: the more guards, the smaller the damage from bandits and other troubles.
 - Unemployment is allowed and reported. It is kept in check by the same rules, not by force: struggling households send adults to work, laborer needs no money to start, and paid posts absorb some idle adults.
 
