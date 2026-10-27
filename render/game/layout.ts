@@ -25,5 +25,5 @@ export function spotIn(p: Place, id: number): { x: number; y: number } {
 
 export const WORKPLACE: Record<Trade, string> = {
   farmer: 'work:farmer', baker: 'work:baker', lumberjack: 'work:lumberjack', miner: 'work:miner', forager: 'work:forager',
-  fisherman: 'work:fisherman', builder: 'work:builder', blacksmith: 'work:blacksmith', merchant: 'work:merchant',
+  fisherman: 'work:fisherman', builder: 'work:builder', innkeeper: 'work:innkeeper', blacksmith: 'work:blacksmith', merchant: 'work:merchant',
 };

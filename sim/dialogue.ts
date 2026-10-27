@@ -31,11 +31,11 @@ const pickTalk = <T>(world: World, items: readonly T[]): T => items[Math.floor(t
 
 const WORK: Record<Trade, string> = {
   farmer: 'farming', baker: 'baking', lumberjack: 'felling timber', miner: 'mining', forager: 'foraging', fisherman: 'fishing',
-  builder: 'building', blacksmith: 'smithing', merchant: 'trading',
+  builder: 'building', innkeeper: 'keeping the tavern', blacksmith: 'smithing', merchant: 'trading',
 };
 const WORKPLACE: Record<Trade, string> = {
   farmer: 'the fields', baker: 'the bakery', lumberjack: 'the woods', miner: 'the quarry', forager: 'the wildwood',
-  fisherman: 'the lake', builder: 'the building sites', blacksmith: 'the smithy', merchant: "the merchants' row",
+  fisherman: 'the lake', builder: 'the building sites', innkeeper: 'the tavern', blacksmith: 'the smithy', merchant: "the merchants' row",
 };
 const first = (c: Citizen) => c.name.split(' ')[0]!;
 const goodName = (data: GameData, g: string) => data.goods.get(g)!.name;
@@ -220,7 +220,10 @@ export function converse(world: World, data: GameData): Conversation[] {
   const priests = world.citizens.filter((c) => c.alive && c.office === 'priest');
   const helped = world.citizens.filter((c) => c.alive && c.memories.some((m) => m.kind === 'received_alms' && world.day - m.day < 3));
   if (priests.length && helped.length) {
-    out.push(talk(world, data, pickTalk(world, helped), pickTalk(world, priests), 'church', 'church', 'the church'));
+    const a = pickTalk(world, helped);
+    const others = priests.filter((p) => p !== a);
+    if (others.length) out.push(talk(world, data, a, pickTalk(world, others), 'church', 'church', 'the church'));
   }
-  return out;
+  // Nobody talks to themselves.
+  return out.filter((c) => c.participants[0] !== c.participants[1]);
 }

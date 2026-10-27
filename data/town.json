@@ -17,7 +17,8 @@
     "forager":    { "share": 0.06, "startCoins": 40,  "batchesPerDay": 1 },
     "fisherman":  { "share": 0.09, "startCoins": 60,  "batchesPerDay": 1 },
     "builder":    { "share": 0.06, "startCoins": 90,  "batchesPerDay": 0 },
-    "blacksmith": { "share": 0.1,  "startCoins": 120, "batchesPerDay": 3 },
+    "innkeeper":  { "share": 0.03, "startCoins": 120, "batchesPerDay": 2 },
+    "blacksmith": { "share": 0.07,  "startCoins": 120, "batchesPerDay": 3 },
     "merchant":   { "share": 0.1,  "startCoins": 160, "batchesPerDay": 0, "startCapital": 60, "visitsPerDay": 6, "carryCapacity": 40 }
   },
   "workingAge": { "adult": 12, "elder": 60 },
@@ -51,6 +52,19 @@
     "oldAgeRiskPerYearOver": 0.02,
     "marriagesPerSinglePerYear": 0.25,
     "marryAges": [17, 35]
+  },
+  "health": {
+    "illnessPerYear": 0.3,
+    "sickDays": [3, 8],
+    "recoverPerDay": 0.15,
+    "healerRecoverBonus": 0.2,
+    "deathPerSickDay": { "young": 0.015, "adult": 0.003, "old": 0.02 },
+    "healerDeathFactor": 0.3
+  },
+  "tavern": {
+    "alePerVisit": 2,
+    "visitAboveDays": 6,
+    "visitChance": 0.5
   },
   "construction": {
     "materials": { "wood": 2, "stone": 2, "nails": 4 },
@@ -99,7 +113,12 @@
     "reviewEveryDays": 7,
     "maxHiresPerReview": 1,
     "peoplePerGuard": 20,
-    "peoplePerPriest": 30
+    "peoplePerPriest": 30,
+    "peoplePerHealer": 40,
+    "pupilsPerTeacher": 15,
+    "schoolAges": [6, 11],
+    "teacherWage": 3,
+    "healerWage": 4
   },
   "neighbours": {
     "names": ["Ashford", "Wealdham", "Brackenbury"],

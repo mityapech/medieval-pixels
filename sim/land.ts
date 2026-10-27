@@ -184,6 +184,9 @@ export function generateLand(world: World, data: GameData): Land {
     ['work:baker', 'Bakery', 'bakery', 3, 3, near(7)],
     ['work:blacksmith', 'Smithy', 'smithy', 3, 3, (x, y) => -Math.abs(ring(x, y) - 0.78) * 20],
     ['work:builder', "Builders' yard", 'yard', 3, 3, (x, y) => -Math.abs(ring(x, y) - 0.7) * 20],
+    ['work:innkeeper', 'Tavern', 'tavern', 4, 3, near(6)],
+    ['school', 'School', 'school', 4, 3, near(9)],
+    ['infirmary', 'Infirmary', 'infirmary', 3, 3, near(10)],
   ];
   for (const [key, label, sprite, w, h, score] of shared) {
     const at = pickOrClear(w, h, land, true, score);

@@ -24,6 +24,9 @@
       "neighbourPrice": { "wood": 1.15 }
     },
     {
+      "id": "fever", "name": "Fever outbreak", "chance": 0.006, "durationDays": [7, 14]
+    },
+    {
       "id": "house_fire", "name": "House fire", "chance": 0.006, "durationDays": [1, 1],
       "householdLoss": 0.7, "guardMitigation": 0.2
     }

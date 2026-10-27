@@ -3,9 +3,9 @@
 export type GoodId = string;
 export type CitizenId = number;
 export type BatchId = number;
-export type Trade = 'farmer' | 'baker' | 'lumberjack' | 'miner' | 'forager' | 'fisherman' | 'builder' | 'blacksmith' | 'merchant';
+export type Trade = 'farmer' | 'baker' | 'lumberjack' | 'miner' | 'forager' | 'fisherman' | 'builder' | 'innkeeper' | 'blacksmith' | 'merchant';
 
-export const TRADES: readonly Trade[] = ['farmer', 'baker', 'lumberjack', 'miner', 'forager', 'fisherman', 'builder', 'blacksmith', 'merchant'];
+export const TRADES: readonly Trade[] = ['farmer', 'baker', 'lumberjack', 'miner', 'forager', 'fisherman', 'builder', 'innkeeper', 'blacksmith', 'merchant'];
 
 export interface GoodDef {
   id: GoodId;
@@ -79,6 +79,19 @@ export interface TownConfig {
     startShare: number;
   };
   comfort: { thresholdDays: number; spendShare: number; basket: Record<GoodId, number> };
+  health: {
+    illnessPerYear: number;
+    sickDays: [number, number];
+    recoverPerDay: number;
+    /** Added to the daily chance of recovering when the town has a healer. */
+    healerRecoverBonus: number;
+    /** Daily chance a sick person dies: young (under 5), adult, old (60 and over). */
+    deathPerSickDay: { young: number; adult: number; old: number };
+    /** A healer multiplies that chance by this. */
+    healerDeathFactor: number;
+  };
+  /** Evenings at the tavern: those who can spare it drink a couple of ales with company. */
+  tavern: { alePerVisit: number; visitAboveDays: number; visitChance: number };
   /** Ageing, births, old age and marriage. A year passes every yearDays days. */
   growth: {
     yearDays: number;
@@ -169,6 +182,11 @@ export interface TownConfig {
     /** The town wants about one guard per this many people, and one priest per peoplePerPriest. */
     peoplePerGuard: number;
     peoplePerPriest: number;
+    peoplePerHealer: number;
+    pupilsPerTeacher: number;
+    schoolAges: [number, number];
+    teacherWage: number;
+    healerWage: number;
   };
   neighbours: {
     names: string[];
@@ -227,7 +245,7 @@ export interface Account {
   coins: number;
 }
 
-export type Office = 'guard' | 'priest' | 'servant';
+export type Office = 'guard' | 'priest' | 'teacher' | 'healer' | 'servant';
 
 export interface Citizen extends Account, Holder {
   id: CitizenId;
@@ -251,6 +269,8 @@ export interface Citizen extends Account, Holder {
   home: string;
   inventory: Lot[];
   needs: { daysHungry: number; daysCold: number; sleep: number };
+  /** Days of illness left (0 or absent when well). The sick cannot work. */
+  sick?: number;
   alive: boolean;
   diedOnDay?: number;
   /** Asking price for each good this citizen sells. */
@@ -268,6 +288,8 @@ export interface Citizen extends Account, Holder {
     visited?: number;
     /** Builders: the building they worked on today. */
     job?: string;
+    /** Spent the evening at the tavern. */
+    tavern?: boolean;
   };
   /** Coins at the start of each of the last days, used for job decisions. */
   coinHistory: number[];
@@ -416,6 +438,10 @@ export interface DayReport {
   starved: { id: CitizenId; name: string }[];
   born: { id: CitizenId; name: string }[];
   diedOfAge: { id: CitizenId; name: string; age: number }[];
+  diedOfIllness: { id: CitizenId; name: string; age: number }[];
+  fellIll: number;
+  /** People who spent the evening at the tavern. */
+  tavernGoers: number;
   married: string[];
   jobChanges: { id: CitizenId; name: string; from: Trade | null; to: Trade | null; reason: string }[];
   /** Deaths, new heads, children moving to kin: family events worth printing. */

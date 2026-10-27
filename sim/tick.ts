@@ -14,6 +14,7 @@ import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
 import { constructionDay } from './construction';
 import { growthDay, type GrowthNews } from './growth';
+import { healthDay, tavernEvening } from './health';
 import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
@@ -56,6 +57,8 @@ export function tick(world: World, data: GameData): DayReport {
   }
   if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data), ...hireServants(world, data));
 
+  const health = healthDay(world, data, familyEvents);
+  const tavernGoers = tavernEvening(world, data, tally);
   const growth: GrowthNews = { born: [], diedOfAge: [], married: [], homes: [] };
   growthDay(world, data, growth, familyEvents);
 
@@ -88,6 +91,9 @@ export function tick(world: World, data: GameData): DayReport {
     comfortSpending: tally.comfort,
     born: growth.born,
     diedOfAge: growth.diedOfAge,
+    diedOfIllness: health.died,
+    fellIll: health.fellIll,
+    tavernGoers,
     married: growth.married,
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,

@@ -23,6 +23,8 @@ const R = routinesJson as unknown as {
   idle: Task[];
   elder: Task[];
   builder: Task[];
+  school: Task[];
+  sick: { home: Task[]; infirmary: Task[] };
   children: { games: Task[]; chores: Task[] };
   adverts: { imported: string[]; local: string[] };
 };
@@ -38,12 +40,17 @@ const choose = <T>(world: World, c: Citizen, salt: number, items: readonly T[]):
 /** Today's steps for this person, in order. Empty for the dead. */
 export function dayPlan(world: World, data: GameData, c: Citizen): Task[] {
   if (!c.alive) return [];
+  // The sick stay in bed, or are looked after at the infirmary when the town has a healer.
+  if (c.sick) return world.citizens.some((h) => h.alive && h.office === 'healer') ? R.sick.infirmary : R.sick.home;
   if (c.age < 4) return [{ task: 'Toddling about at home', where: 'home' }];
   if (c.age < data.town.workingAge.adult) {
-    // Children play, with a chore now and then; older children are sent on more errands.
+    // Children play, with a chore now and then; older children are sent on more errands. School-age children
+    // have lessons first, when there is a teacher.
     const games = [choose(world, c, 1, R.children.games), choose(world, c, 2, R.children.games), choose(world, c, 3, R.children.games)];
     if (c.age >= 7 && hash(world, c, 4) < 0.5) games.splice(1, 0, choose(world, c, 5, R.children.chores));
-    return games;
+    const [from, to] = data.town.authority.schoolAges;
+    const teacher = world.citizens.some((t) => t.alive && t.office === 'teacher');
+    return teacher && c.age >= from && c.age <= to ? [...R.school, ...games.slice(0, 2)] : games;
   }
   if (c.office) return R.office[c.office] ?? [];
   if (c.trade === 'merchant') {

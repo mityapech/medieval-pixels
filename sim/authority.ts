@@ -15,6 +15,12 @@ export function marketTax(world: World, data: GameData, seller: Citizen, amount:
   return tax;
 }
 
+/** Posts the town authority pays for, and what each is paid a day. */
+type PublicOffice = 'guard' | 'priest' | 'teacher' | 'healer';
+const PUBLIC_OFFICES: readonly PublicOffice[] = ['healer', 'priest', 'teacher', 'guard'];
+const WAGE = (a: GameData['town']['authority'], o: PublicOffice) =>
+  ({ guard: a.guardWage, priest: a.priestWage, teacher: a.teacherWage, healer: a.healerWage })[o];
+
 function officers(world: World, office: Office): Citizen[] {
   return world.citizens.filter((c) => c.alive && c.office === office);
 }
@@ -49,10 +55,11 @@ function hearthTax(world: World, data: GameData): number {
 export function authorityDay(world: World, data: GameData): { tax: number; alms: number } {
   const a = data.town.authority;
   const tax = hearthTax(world, data);
-  for (const [office, wage] of [['guard', a.guardWage], ['priest', a.priestWage]] as const) {
-    for (const c of officers(world, office)) transfer(world, world.treasury, c, Math.min(wage, world.treasury.coins), `${office} wage`);
+  let wagesPerDay = 0;
+  for (const office of PUBLIC_OFFICES) {
+    for (const c of officers(world, office)) transfer(world, world.treasury, c, Math.min(WAGE(a, office), world.treasury.coins), `${office} wage`);
+    wagesPerDay += officers(world, office).length * WAGE(a, office);
   }
-  const wagesPerDay = officers(world, 'guard').length * a.guardWage + officers(world, 'priest').length * a.priestWage;
   // The treasury keeps a few weeks of wages and passes the rest on to the church a little at a time.
   const surplus = world.treasury.coins - a.treasuryKeepDays * Math.max(wagesPerDay, a.guardWage);
   if (surplus > 0) transfer(world, world.treasury, world.church, Math.floor(surplus * a.churchGrantShare), 'church grant');
@@ -91,15 +98,25 @@ export function reviewPosts(world: World, data: GameData): string[] {
   const taxPerDay = recent.length ? recent.reduce((s, x) => s + x, 0) / recent.length : 0;
   const savingsBonus = Math.max(0, world.treasury.coins - 60 * a.guardWage) / 60;
   const budget = taxPerDay * a.wageBudgetShare + savingsBonus;
-  const avgWage = a.guardWage * a.guardShare + a.priestWage * (1 - a.guardShare);
-  const posts = Math.floor(budget / avgWage);
-  const priests = posts > 0 ? Math.max(1, posts - Math.round(posts * a.guardShare)) : 0;
-  // The town staffs posts for what it needs (a few guards and priests for its size), as far as it can afford them.
+  // The town staffs posts for what it needs, most needed first (healers, priests, teachers, then guards),
+  // as far as the budget goes. Tax limits posts but never creates them.
   const people = world.citizens.filter((c) => c.alive).length;
-  const want: Record<'guard' | 'priest', number> = {
-    guard: Math.min(posts - priests, Math.ceil(people / a.peoplePerGuard)),
-    priest: Math.min(priests, Math.ceil(people / a.peoplePerPriest)),
-  };
+  const pupils = world.citizens.filter((c) => c.alive && c.age >= a.schoolAges[0] && c.age <= a.schoolAges[1]).length;
+  const need: [PublicOffice, number][] = [
+    ['healer', Math.ceil(people / a.peoplePerHealer)],
+    ['priest', Math.ceil(people / a.peoplePerPriest)],
+    ['teacher', Math.ceil(pupils / a.pupilsPerTeacher)],
+    ['guard', Math.ceil(people / a.peoplePerGuard)],
+  ];
+  const want = {} as Record<PublicOffice, number>;
+  let left = budget;
+  // One of each first, then the rest of each in the same order.
+  for (const [office] of need) want[office] = 0;
+  for (const round of [1, Infinity]) {
+    for (const [office, n] of need) {
+      while (want[office] < Math.min(n, round) && left >= WAGE(a, office)) { want[office]++; left -= WAGE(a, office); }
+    }
+  }
 
   const events: string[] = [];
   // Unemployed adults from the poorest households first, then workers whose trade lost them money this week.
@@ -108,7 +125,7 @@ export function reviewPosts(world: World, data: GameData): string[] {
   const idle = world.citizens.filter((c) => c.alive && !c.trade && !c.office && isWorkingAge(data, c)).sort((x, y) => purse(x) - purse(y));
   const losing = world.citizens.filter((c) => c.alive && c.trade && weekNet(c) < 0).sort((x, y) => weekNet(x) - weekNet(y));
   const candidates = [...idle, ...losing];
-  for (const office of ['guard', 'priest'] as const) {
+  for (const office of PUBLIC_OFFICES) {
     const current = officers(world, office);
     for (const c of current.slice(want[office])) {
       c.office = null;

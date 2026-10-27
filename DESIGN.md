@@ -64,6 +64,13 @@ Roughly 40 workers plus dependents. Some people can be unemployed, which gives t
 - Children under 12 play outside (tag, hide and seek, hoops, skipping stones on the canal, racing to the docks), with the odd chore for the older ones.
 - In the town view people walk the streets at a walking pace (children run, elders are slower), use the bridges and gates, and work through their tasks at different spots. The task of anyone near the observer is shown over their head.
 
+### School, infirmary and tavern
+
+- The treasury staffs posts by need, most needed first: **healers** (about one per 40 people) at the infirmary, **priests** (one per 30), **teachers** (one per 15 children aged 6 to 11) at the school, then **guards** (one per 20), as far as tax income allows.
+- Children aged 6 to 11 have lessons at the school in the morning when there is a teacher, then play.
+- People fall ill now and then (about a third of a sickness a year; a fever outbreak makes it four times as likely) and cannot work while sick. With a healer they recover sooner and are less likely to die; the very young and the old are most at risk (`sim/health.ts`).
+- The **innkeeper** brews ale from wheat and firewood at the tavern. In the evening, adults whose household can spare it go for a couple of ales and some company.
+
 ### Merchants' specialities and adverts
 
 - Each merchant deals in one group of goods (grain and produce, baked goods, timber and stone, or iron and tools), chosen to fill the gap in town when they take up the trade. They buy, import and export only within it; an import order goes to the merchant who deals in that good if there is one.

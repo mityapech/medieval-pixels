@@ -10,6 +10,7 @@
     { "id": "berries",    "name": "berries",     "kind": "crop",     "basePrice": 3,  "weight": 1, "nutrition": 1, "appeal": 0.6 },
     { "id": "mushrooms",  "name": "mushrooms",   "kind": "crop",     "basePrice": 4,  "weight": 1, "nutrition": 1, "appeal": 0.65 },
     { "id": "herbs",      "name": "herbs",       "kind": "material", "basePrice": 6,  "weight": 0.5 },
+    { "id": "ale",        "name": "ale",         "kind": "material", "basePrice": 3,  "weight": 1 },
     { "id": "wood",       "name": "wood",        "kind": "material", "basePrice": 4,  "weight": 2 },
     { "id": "stone",      "name": "stone",       "kind": "material", "basePrice": 4,  "weight": 3 },
     { "id": "iron_ore",   "name": "iron ore",    "kind": "material", "basePrice": 5,  "weight": 3 },
@@ -36,6 +37,8 @@
     { "id": "gather_mushrooms", "trade": "forager",   "inputs": {}, "outputs": { "mushrooms": 5 } },
     { "id": "gather_herbs",     "trade": "forager",   "inputs": {}, "outputs": { "herbs": 3 } },
     { "id": "catch_fish",       "trade": "fisherman", "inputs": {}, "outputs": { "fish": 7 } },
+
+    { "id": "brew_ale",         "trade": "innkeeper", "inputs": { "wheat": 2, "wood": 1 }, "outputs": { "ale": 10 } },
 
     { "id": "smelt_iron",      "trade": "blacksmith", "inputs": { "iron_ore": 2, "wood": 1 },   "outputs": { "iron_ingot": 1 } },
     { "id": "forge_hoe",       "trade": "blacksmith", "inputs": { "iron_ingot": 1, "wood": 1 }, "outputs": { "hoe": 1 } },

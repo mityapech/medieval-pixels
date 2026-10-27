@@ -1,5 +1,5 @@
 {
-  "_comment": "What people visibly do through the day. 'where' is a kind of place: work, home, market, church, granary, docks, gate, wall, canal, play, employer, lake (out in a boat), site (a builder's building job). Steps are shown in order across the working hours; the goods themselves are made by the recipe in goods.json.",
+  "_comment": "What people visibly do through the day. 'where' is a kind of place: work, home, market, church, granary, docks, gate, wall, canal, play, employer, school, infirmary, tavern, lake (out in a boat), site (a builder's building job). Steps are shown in order across the working hours; the goods themselves are made by the recipe in goods.json.",
   "recipeSteps": {
     "grow_wheat": [
       {
@@ -360,6 +360,28 @@
         "task": "Gutting and salting fish",
         "where": "work"
       }
+    ],
+    "brew_ale": [
+      {
+        "task": "Mashing the grain",
+        "where": "work"
+      },
+      {
+        "task": "Boiling the wort",
+        "where": "work"
+      },
+      {
+        "task": "Pitching the yeast",
+        "where": "work"
+      },
+      {
+        "task": "Racking the ale into casks",
+        "where": "work"
+      },
+      {
+        "task": "Sweeping out the taproom",
+        "where": "work"
+      }
     ]
   },
   "idleWork": {
@@ -444,6 +466,16 @@
       },
       {
         "task": "Sharpening chisels",
+        "where": "work"
+      }
+    ],
+    "innkeeper": [
+      {
+        "task": "Wiping down the tables",
+        "where": "work"
+      },
+      {
+        "task": "Airing the rooms",
         "where": "work"
       }
     ]
@@ -549,6 +581,42 @@
       {
         "task": "Cooking supper",
         "where": "employer"
+      }
+    ],
+    "teacher": [
+      {
+        "task": "Ringing the school bell",
+        "where": "school"
+      },
+      {
+        "task": "Teaching letters",
+        "where": "school"
+      },
+      {
+        "task": "Teaching sums",
+        "where": "school"
+      },
+      {
+        "task": "Marking slates",
+        "where": "school"
+      }
+    ],
+    "healer": [
+      {
+        "task": "Grinding herbs for remedies",
+        "where": "infirmary"
+      },
+      {
+        "task": "Tending the sick",
+        "where": "infirmary"
+      },
+      {
+        "task": "Visiting the sick at home",
+        "where": "home"
+      },
+      {
+        "task": "Changing dressings",
+        "where": "infirmary"
       }
     ]
   },
@@ -702,5 +770,29 @@
       "task": "Clearing up",
       "where": "site"
     }
-  ]
+  ],
+  "school": [
+    {
+      "task": "Lessons at school",
+      "where": "school"
+    },
+    {
+      "task": "Reciting letters",
+      "where": "school"
+    }
+  ],
+  "sick": {
+    "home": [
+      {
+        "task": "Sick in bed",
+        "where": "home"
+      }
+    ],
+    "infirmary": [
+      {
+        "task": "Being treated at the infirmary",
+        "where": "infirmary"
+      }
+    ]
+  }
 }

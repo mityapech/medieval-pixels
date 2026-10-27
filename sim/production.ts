@@ -9,7 +9,7 @@ import type { Citizen, GoodId, Lot, RecipeDef, World } from './types';
 
 export function work(world: World, data: GameData, c: Citizen): void {
   c.workLog = [];
-  if (!c.alive || !c.trade) return;
+  if (!c.alive || !c.trade || c.sick) return; // the sick stay in bed
   const runs = data.town.trades[c.trade].batchesPerDay;
   for (let i = 0; i < runs; i++) {
     const r = chooseRecipe(world, data, c, true);

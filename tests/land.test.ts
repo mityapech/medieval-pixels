@@ -5,7 +5,7 @@ import { createWorld, loadData, runDays } from '../sim/index';
 const data = loadData();
 const SEEDS = Array.from({ length: 60 }, (_, i) => i + 1);
 const SHARED = ['market', 'church', 'granary', 'work:farmer', 'work:baker', 'work:lumberjack', 'work:miner', 'work:forager',
-  'work:fisherman', 'work:builder', 'work:blacksmith', 'work:merchant'];
+  'work:fisherman', 'work:builder', 'work:innkeeper', 'work:blacksmith', 'work:merchant', 'school', 'infirmary'];
 
 describe('generated town', () => {
   it.each(SEEDS)('has every shared place and a home for every household, nothing overlapping (seed %i)', (seed) => {

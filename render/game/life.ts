@@ -145,7 +145,7 @@ export class Life {
       case 'work': return c.trade ? `work:${c.trade}` : home;
       case 'home': return home;
       case 'employer': return c.employerHousehold !== null ? `home:${c.employerHousehold}` : home;
-      case 'market': case 'church': case 'granary': return task.where;
+      case 'market': case 'church': case 'granary': case 'school': case 'infirmary': return this.places.has(task.where) ? task.where : 'market';
       case 'site': return c.today.job && this.places.has(c.today.job) ? c.today.job : c.trade ? `work:${c.trade}` : home;
       default: return this.areas.get(task.where)?.length ? task.where : 'market';
     }

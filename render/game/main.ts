@@ -40,12 +40,12 @@ const SPRITES = spritesJson as { places: Record<string, string>; people: Record<
 const PLACEHOLDER: Record<string, number> = {
   market: 0xcbb98f, church: 0x9c97ab, granary: 0xa77e48, fields: 0xc2a24a, woods: 0x7a5a2c,
   bakery: 0xb9733e, smithy: 0x5f5d58, merchants: 0xa98756, house: 0x8a6440, townhouse: 0x6e4a2e,
-  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e, site: 0xc9b48a,
+  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e, site: 0xc9b48a, tavern: 0x9a5b2e, school: 0xc7b26a, infirmary: 0xd8d0c4,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
   farmer: 0x2a78d6, baker: 0xeb6834, lumberjack: 0x1baf7a, miner: 0x7a6a5a, forager: 0x8cbf3f, fisherman: 0x3fb0c9,
-  builder: 0xc9853f, blacksmith: 0xeda100,
+  builder: 0xc9853f, innkeeper: 0xa0522d, teacher: 0x4a7fb5, healer: 0xd94f70, blacksmith: 0xeda100,
   merchant: 0xe87ba4, guard: 0x008300, priest: 0x6250d6, servant: 0xe34948,
 };
 const IDLE_COLOUR = 0xf0efec;
@@ -221,6 +221,10 @@ function target(c: Citizen, t: number): Target {
   if (talking) return { dest: talking.place.key, ...spotIn(talking.place, c.id), mode: 'still', task: 'Talking' };
   const act = life.activity(c, t);
   if (act) return act;
+  // Evening at the tavern for those who went tonight.
+  if (c.today.tavern && t >= 0.76 && t < 0.88 && placeFor('work:innkeeper')) {
+    return { dest: 'work:innkeeper', ...life.spot('work:innkeeper', c.id, world.day), mode: 'still', task: 'Drinking ale at the tavern' };
+  }
   // Market time: heads of households come to shop; everyone else is at home.
   if (phase(t) === 'market' && householdOf(world, c).headId === c.id) {
     return { dest: 'market', ...life.spot('market', c.id, world.day), mode: 'still', task: 'Shopping at the market' };

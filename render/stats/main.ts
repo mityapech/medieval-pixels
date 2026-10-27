@@ -63,7 +63,7 @@ const goodGroups = (value: (g: string) => Value): Group[] =>
 
 const JOBS: [string, string][] = [
   ['farmer', 'Farmers'], ['baker', 'Bakers'], ['lumberjack', 'Lumberjacks'], ['miner', 'Miners'], ['forager', 'Foragers'],
-  ['fisherman', 'Fishermen'], ['builder', 'Builders'], ['blacksmith', 'Blacksmiths'],
+  ['fisherman', 'Fishermen'], ['builder', 'Builders'], ['innkeeper', 'Innkeepers'], ['blacksmith', 'Blacksmiths'],
   ['merchant', 'Merchants'], ['guard', 'Guards'], ['priest', 'Priests'], ['servant', 'Servants'],
 ];
 
