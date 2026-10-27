@@ -282,6 +282,30 @@ export interface Neighbour extends Account {
   prices: Record<GoodId, number>;
 }
 
+export type Terrain = 'grass' | 'water' | 'forest' | 'rock';
+
+/** A building or site on the map, in tiles. Keys: "market", "church", "granary", "work:<trade>", "home:<household id>". */
+export interface Place {
+  key: string;
+  label: string;
+  sprite: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** The generated land: a tile grid (row by row), road tiles, and every building's place. */
+export interface Land {
+  width: number;
+  height: number;
+  terrain: Terrain[];
+  /** Tile indexes (y * width + x) that are road. */
+  roads: number[];
+  river: boolean;
+  places: Place[];
+}
+
 export interface ActiveEvent {
   id: string;
   name: string;
@@ -361,6 +385,8 @@ export interface World {
   rngState: number;
   citizens: Citizen[];
   households: Household[];
+  /** Terrain, roads and buildings, generated from the seed (see sim/land.ts). */
+  land: Land;
   treasury: Account;
   /** The town's public store of grain and vegetables, bought cheaply in good times and sold at cost in a shortage. */
   granary: Holder;

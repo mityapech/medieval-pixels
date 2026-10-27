@@ -1,6 +1,7 @@
 // Builds the starting town: about 60 people in households of mixed shapes, with kin spread across them.
 import { foodTarget } from './agent';
 import { totalCoins } from './coins';
+import { generateLand } from './land';
 import type { GameData } from './data';
 import { isWorkingAge } from './family';
 import { addLot, makeBatch } from './inventory';
@@ -17,6 +18,7 @@ export function createWorld(data: GameData, seed = 1): World {
     rngState: seed,
     citizens: [],
     households: [],
+    land: { width: 0, height: 0, terrain: [], roads: [], river: false, places: [] },
     batches: new Map(),
     nextBatchId: 1,
     ledger: [],
@@ -90,6 +92,8 @@ export function createWorld(data: GameData, seed = 1): World {
   }
   // The public granary starts with some stores laid by in earlier years.
   for (const good of town.granary.goods) seedGood(world, data, world.granary, good, Math.round(town.granary.targetUnits * town.granary.startShare));
+  // Where everyone lives and works. Uses its own random stream, so it never changes the economy.
+  world.land = generateLand(world, data);
   return world;
 }
 

@@ -7,13 +7,15 @@ import {
   cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Citizen, type Conversation,
   type DayReport,
 } from '../../sim/index';
-import { MAP_H, MAP_W, TILE, WORKPLACE, centre, layoutTown, spotIn, type Place } from './layout';
+import { TILE, WORKPLACE, centre, layoutTown, spotIn, type Place } from './layout';
 
 const data = loadData();
 const params = new URLSearchParams(location.search);
 const seed = Math.max(1, Number(params.get('seed')) || 1);
 const world = createWorld(data, seed);
 const places = layoutTown(world);
+const MAP_W = world.land.width;
+const MAP_H = world.land.height;
 
 // ---------- time ----------
 
@@ -35,7 +37,7 @@ function phase(t: number): 'night' | 'morning' | 'work' | 'market' | 'evening' {
 const SPRITES = spritesJson as { places: Record<string, string>; people: Record<string, string> };
 const PLACEHOLDER: Record<string, number> = {
   market: 0xd9c9a3, church: 0xb9b4c9, granary: 0xc9a66b, fields: 0x9fc27a, woods: 0x5f8a5a,
-  bakery: 0xe0a86b, smithy: 0x8a8a8a, merchants: 0xd4b483, house: 0xc89b74,
+  bakery: 0xe0a86b, smithy: 0x8a8a8a, merchants: 0xd4b483, house: 0xc89b74, townhouse: 0xb07d5a,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
@@ -62,11 +64,21 @@ const peopleLayer = new Container();
 const bubbleLayer = new Container();
 scene.addChild(ground, placeLayer, peopleLayer, bubbleLayer);
 
-// Grass and two paths crossing at the market.
-ground.rect(0, 0, MAP_W * TILE, MAP_H * TILE).fill(0x7fa36a);
-ground.rect(0, 14 * TILE, MAP_W * TILE, TILE).fill(0xcdb58a);
-ground.rect(21 * TILE, 0, TILE, MAP_H * TILE).fill(0xcdb58a);
-ground.rect(0, 22 * TILE, MAP_W * TILE, TILE).fill(0xcdb58a);
+// The land: grass with a little variation, the river, woods, rock and the roads, all generated for this seed.
+const TERRAIN_COLOUR = { grass: 0x7fa36a, water: 0x4f86b5, forest: 0x46703f, rock: 0x8d8a80 } as const;
+world.land.terrain.forEach((t, i) => {
+  const x = i % MAP_W;
+  const y = Math.floor(i / MAP_W);
+  const shade = t === 'grass' && (x * 7 + y * 13) % 5 === 0 ? 0x78996a : TERRAIN_COLOUR[t];
+  ground.rect(x * TILE, y * TILE, TILE, TILE).fill(shade);
+  if (t === 'forest') ground.circle(x * TILE + 10 + ((x * 5 + y) % 12), y * TILE + 12 + ((y * 3 + x) % 9), 7).fill(0x365a31);
+});
+for (const r of world.land.roads) {
+  const x = r % MAP_W;
+  const y = Math.floor(r / MAP_W);
+  const onWater = world.land.terrain[r] === 'water';
+  ground.rect(x * TILE, y * TILE, TILE, TILE).fill(onWater ? 0x8a6a45 : 0xcdb58a); // a wooden bridge over the river
+}
 for (let x = 0; x <= MAP_W; x++) ground.rect(x * TILE, 0, 1, MAP_H * TILE).fill({ color: 0x000000, alpha: 0.04 });
 for (let y = 0; y <= MAP_H; y++) ground.rect(0, y * TILE, MAP_W * TILE, 1).fill({ color: 0x000000, alpha: 0.04 });
 
@@ -110,7 +122,7 @@ function drawWalker(w: Walker): void {
 }
 
 // The observer stands in for the player until the player milestone: walk around and overhear people.
-const observer = { x: 21.5 * TILE, y: 16 * TILE };
+const observer = centre(places.get('market')!);
 const observerG = new Graphics();
 const hearingG = new Graphics().circle(0, 0, HEARING).fill({ color: 0xffffff, alpha: 0.07 }).stroke({ width: 1, color: 0xffffff, alpha: 0.35 });
 peopleLayer.addChild(hearingG, observerG);

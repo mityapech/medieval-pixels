@@ -9,7 +9,8 @@
     "bakery": "building_bakery_01",
     "smithy": "building_smithy_01",
     "merchants": "market_stalls_01",
-    "house": "house_small_01"
+    "house": "house_small_01",
+    "townhouse": "townhouse_01"
   },
   "people": {
     "citizen": "person_01",
