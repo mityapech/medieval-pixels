@@ -114,8 +114,14 @@ for (const g of world.land.gates) {
 for (let x = 0; x <= MAP_W; x++) ground.rect(x * TILE, 0, 1, MAP_H * TILE).fill({ color: 0x000000, alpha: 0.04 });
 for (let y = 0; y <= MAP_H; y++) ground.rect(0, y * TILE, MAP_W * TILE, 1).fill({ color: 0x000000, alpha: 0.04 });
 
+/**
+ * Map text uses a plain fixed font. The Mac system font is variable: canvas measures it at one weight and draws it
+ * at another, so long labels lost their last letters.
+ */
+const MAP_FONT = 'Arial, Helvetica, sans-serif';
+
 function label(text: string, size = 11, colour = 0x1a1a19): Text {
-  return new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: size, fill: colour, fontWeight: '600', padding: 6 }, resolution: 3 });
+  return new Text({ text, style: { fontFamily: MAP_FONT, fontSize: size, fill: colour, fontWeight: 'bold', padding: 4 }, resolution: 3 });
 }
 
 for (const p of places.values()) {
@@ -153,7 +159,7 @@ function showTag(w: Walker, task: string | undefined): void {
   const near = task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
   if (!near) { if (w.tag) w.tag.visible = false; return; }
   if (!w.tag) {
-    w.tag = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3 }, padding: 6 }, resolution: 3 });
+    w.tag = new Text({ text: '', style: { fontFamily: MAP_FONT, fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3, join: 'round' }, padding: 6 }, resolution: 3 });
     w.tag.anchor.set(0.5, 1);
     tagLayer.addChild(w.tag);
   }
@@ -274,7 +280,7 @@ const LINE_MS = 3200;
 
 function say(speaker: Citizen, text: string, delay: number): void {
   const box = new Container();
-  const t = new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: 11, fill: 0x0b0b0b, wordWrap: true, wordWrapWidth: 200, padding: 4 }, resolution: 3 });
+  const t = new Text({ text, style: { fontFamily: MAP_FONT, fontSize: 11, fill: 0x0b0b0b, wordWrap: true, wordWrapWidth: 200, padding: 4 }, resolution: 3 });
   const bg = new Graphics().roundRect(-6, -5, t.width + 12, t.height + 10, 6).fill(0xfcfcfb).stroke({ width: 1, color: 0x0b0b0b, alpha: 0.4 });
   box.addChild(bg, t);
   box.visible = false;
@@ -360,11 +366,52 @@ app.ticker.add((t) => {
       gx += Math.sin(now / 2600 + phaseOffset) * 3;
       gy += Math.cos(now / 3100 + phaseOffset) * 3;
     }
-    const at = life.walk(w, to.dest, { x: gx, y: gy }, walk);
-    w.x = at.x;
-    w.y = at.y;
+    // Close to their spot people move straight there; only further away do they follow the streets. This stops
+    // children at play being pulled back and forth between their game and the path.
+    if (Math.hypot(to.x - w.x, to.y - w.y) < TILE * 2.5) {
+      const dx = gx - w.x;
+      const dy = gy - w.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 0.01) { const s = Math.min(d, walk); w.x += (dx / d) * s; w.y += (dy / d) * s; }
+    } else {
+      const at = life.walk(w, to.dest, { x: gx, y: gy }, walk);
+      w.x = at.x;
+      w.y = at.y;
+    }
+  }
+
+  // Nobody stands inside anybody else: people close together are nudged apart.
+  const alive = [...walkers.values()].filter((w) => w.c.alive);
+  const ROOM = 11;
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = alive[i]!;
+      const b = alive[j]!;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const d = Math.hypot(dx, dy);
+      if (d >= ROOM) continue;
+      const push = (ROOM - d) / 2;
+      const ux = d > 0.01 ? dx / d : Math.cos(a.c.id + b.c.id);
+      const uy = d > 0.01 ? dy / d : Math.sin(a.c.id + b.c.id);
+      a.x -= ux * push; a.y -= uy * push;
+      b.x += ux * push; b.y += uy * push;
+    }
+  }
+
+  // Draw everyone; show task labels for those near the observer, nearest first, skipping any that would overlap.
+  const shownTags: { x: number; y: number; w: number }[] = [];
+  const byNearness = [...walkers.values()].sort((a, b) => Math.hypot(a.x - observer.x, a.y - observer.y) - Math.hypot(b.x - observer.x, b.y - observer.y));
+  for (const w of byNearness) {
     drawWalker(w);
-    showTag(w, to.task);
+    if (!w.c.alive) continue;
+    // Being at home or asleep needs no label.
+    const doing = target(w.c, clock).task;
+    const task = doing === 'At home' || doing === 'Asleep' ? undefined : doing;
+    const width = (task?.length ?? 0) * 5;
+    const clash = shownTags.some((t) => Math.abs(t.y - w.y) < 12 && Math.abs(t.x - w.x) < (t.w + width) / 2 + 4);
+    showTag(w, clash ? undefined : task);
+    if (!clash && w.tag?.visible) shownTags.push({ x: w.x, y: w.y, w: width });
   }
 
   cryWares();
