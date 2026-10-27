@@ -115,7 +115,7 @@ for (let x = 0; x <= MAP_W; x++) ground.rect(x * TILE, 0, 1, MAP_H * TILE).fill(
 for (let y = 0; y <= MAP_H; y++) ground.rect(0, y * TILE, MAP_W * TILE, 1).fill({ color: 0x000000, alpha: 0.04 });
 
 function label(text: string, size = 11, colour = 0x1a1a19): Text {
-  return new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: size, fill: colour, fontWeight: '600' }, resolution: 3 });
+  return new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: size, fill: colour, fontWeight: '600', padding: 6 }, resolution: 3 });
 }
 
 for (const p of places.values()) {
@@ -153,7 +153,7 @@ function showTag(w: Walker, task: string | undefined): void {
   const near = task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
   if (!near) { if (w.tag) w.tag.visible = false; return; }
   if (!w.tag) {
-    w.tag = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3 } }, resolution: 3 });
+    w.tag = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3 }, padding: 6 }, resolution: 3 });
     w.tag.anchor.set(0.5, 1);
     tagLayer.addChild(w.tag);
   }
@@ -274,7 +274,7 @@ const LINE_MS = 3200;
 
 function say(speaker: Citizen, text: string, delay: number): void {
   const box = new Container();
-  const t = new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: 11, fill: 0x0b0b0b, wordWrap: true, wordWrapWidth: 200 }, resolution: 3 });
+  const t = new Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: 11, fill: 0x0b0b0b, wordWrap: true, wordWrapWidth: 200, padding: 4 }, resolution: 3 });
   const bg = new Graphics().roundRect(-6, -5, t.width + 12, t.height + 10, 6).fill(0xfcfcfb).stroke({ width: 1, color: 0x0b0b0b, alpha: 0.4 });
   box.addChild(bg, t);
   box.visible = false;
