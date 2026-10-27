@@ -37,6 +37,7 @@ const choose = <T>(world: World, c: Citizen, salt: number, items: readonly T[]):
 /** Today's steps for this person, in order. Empty for the dead. */
 export function dayPlan(world: World, data: GameData, c: Citizen): Task[] {
   if (!c.alive) return [];
+  if (c.age < 4) return [{ task: 'Toddling about at home', where: 'home' }];
   if (c.age < data.town.workingAge.adult) {
     // Children play, with a chore now and then; older children are sent on more errands.
     const games = [choose(world, c, 1, R.children.games), choose(world, c, 2, R.children.games), choose(world, c, 3, R.children.games)];

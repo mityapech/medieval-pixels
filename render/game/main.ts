@@ -8,7 +8,7 @@ import {
   type Conversation, type DayReport,
 } from '../../sim/index';
 import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
-import { Life, hash } from './life';
+import { Life, type Mover, type Target } from './life';
 
 const data = loadData();
 const params = new URLSearchParams(location.search);
@@ -139,7 +139,7 @@ for (const p of places.values()) {
 }
 
 // People: small squares, coloured by occupation.
-interface Walker { c: Citizen; g: Graphics; x: number; y: number; tag?: Text }
+interface Walker extends Mover { g: Graphics; tag?: Text }
 const walkers = new Map<number, Walker>();
 for (const c of world.citizens) {
   const home = centre(places.get(`home:${c.householdId}`)!);
@@ -150,9 +150,6 @@ for (const c of world.citizens) {
   peopleLayer.addChild(g);
   walkers.set(c.id, { c, g, x: home.x, y: home.y });
 }
-
-/** Walking pace: about one and a half tiles a second at 1x. */
-const WALK_PX_PER_MS = (1.5 * TILE) / 1000;
 
 /** What someone is doing, shown over their head when they are near the observer. */
 function showTag(w: Walker, task: string | undefined): void {
@@ -167,6 +164,9 @@ function showTag(w: Walker, task: string | undefined): void {
   w.tag.visible = true;
   w.tag.position.set(w.x, w.y - 8);
 }
+
+// In development, expose the people on the page so movement can be checked from the browser console.
+if (import.meta.env.DEV) (window as unknown as { townWalkers: typeof walkers }).townWalkers = walkers;
 
 function drawWalker(w: Walker): void {
   const colour = w.c.office ? JOB_COLOUR[w.c.office]! : w.c.trade ? JOB_COLOUR[w.c.trade]! : IDLE_COLOUR;
@@ -195,7 +195,7 @@ function placeFor(key: string): Place | undefined {
 }
 
 /** Where someone is heading now: the place, and the point in it. */
-function target(c: Citizen, t: number): { dest: string; x: number; y: number; mode: 'still' | 'play'; task?: string } {
+function target(c: Citizen, t: number): Target {
   const homeKey = `home:${c.householdId}`;
   const home = placeFor(homeKey)!;
   const talking = talks.find((k) => k.c.participants.includes(c.id) && t >= k.start && t < k.start + 0.03);
@@ -346,58 +346,13 @@ app.ticker.add((t) => {
   observerG.position.set(observer.x, observer.y);
   hearingG.position.set(observer.x, observer.y);
 
-  // People walk along the streets at a walking pace (children run, elders take their time), and once there
-  // they potter about their task; children at play run around.
+  // Everyone moves a step towards where they want to be (see Life.move).
   const now = performance.now();
-  for (const w of walkers.values()) {
-    if (!w.c.alive) { w.g.visible = false; if (w.tag) w.tag.visible = false; continue; }
-    const to = target(w.c, clock);
-    const pace = w.c.age < data.town.workingAge.adult ? 1.5 : w.c.age >= data.town.workingAge.elder ? 0.7 : 1;
-    const walk = WALK_PX_PER_MS * pace * dt * Math.max(1, Math.min(speed, 12));
-    let gx = to.x;
-    let gy = to.y;
-    const phaseOffset = hash(w.c.id, 3) * Math.PI * 2;
-    if (to.mode === 'play') {
-      // Running about in loops around their spot.
-      const r = TILE * (1 + hash(w.c.id, 5));
-      gx += Math.cos(now / 900 + phaseOffset) * r;
-      gy += Math.sin(now / 700 + phaseOffset) * r * 0.7;
-    } else {
-      gx += Math.sin(now / 2600 + phaseOffset) * 3;
-      gy += Math.cos(now / 3100 + phaseOffset) * 3;
-    }
-    // Close to their spot people move straight there; only further away do they follow the streets. This stops
-    // children at play being pulled back and forth between their game and the path.
-    if (Math.hypot(to.x - w.x, to.y - w.y) < TILE * 2.5) {
-      const dx = gx - w.x;
-      const dy = gy - w.y;
-      const d = Math.hypot(dx, dy);
-      if (d > 0.01) { const s = Math.min(d, walk); w.x += (dx / d) * s; w.y += (dy / d) * s; }
-    } else {
-      const at = life.walk(w, to.dest, { x: gx, y: gy }, walk);
-      w.x = at.x;
-      w.y = at.y;
-    }
-  }
-
-  // Nobody stands inside anybody else: people close together are nudged apart.
-  const alive = [...walkers.values()].filter((w) => w.c.alive);
-  const ROOM = 11;
-  for (let i = 0; i < alive.length; i++) {
-    for (let j = i + 1; j < alive.length; j++) {
-      const a = alive[i]!;
-      const b = alive[j]!;
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const d = Math.hypot(dx, dy);
-      if (d >= ROOM) continue;
-      const push = (ROOM - d) / 2;
-      const ux = d > 0.01 ? dx / d : Math.cos(a.c.id + b.c.id);
-      const uy = d > 0.01 ? dy / d : Math.sin(a.c.id + b.c.id);
-      a.x -= ux * push; a.y -= uy * push;
-      b.x += ux * push; b.y += uy * push;
-    }
-  }
+  const living = [...walkers.values()].filter((w) => {
+    if (!w.c.alive) { w.g.visible = false; if (w.tag) w.tag.visible = false; }
+    return w.c.alive;
+  });
+  life.move(living.map((w) => ({ m: w, to: target(w.c, clock) })), now, dt, speed);
 
   // Draw everyone; show task labels for those near the observer, nearest first, skipping any that would overlap.
   const shownTags: { x: number; y: number; w: number }[] = [];

@@ -6,6 +6,26 @@ import { dayPlan, type Citizen, type Place, type Task, type World } from '../../
 import type { GameData } from '../../sim/data';
 import { TILE } from './layout';
 
+/** Someone on the map: who they are, where they stand, and the destination they have settled at (if any). */
+export interface Mover {
+  c: Citizen;
+  x: number;
+  y: number;
+  settledAt?: string;
+}
+
+/** Where someone is heading: a destination (see Activity.dest), the point in it, how they behave there, and why. */
+export interface Target {
+  dest: string;
+  x: number;
+  y: number;
+  mode: 'still' | 'play';
+  task?: string;
+}
+
+/** Walking pace: about one and a half tiles a second at 1x. */
+export const WALK_PX_PER_MS = (1.5 * TILE) / 1000;
+
 export interface Activity {
   task: string;
   /** A place key (home:3, work:farmer, market, church, granary) or an area (docks, gate, wall, canal, play). */
@@ -80,7 +100,7 @@ export class Life {
   }
 
   /** What someone is doing at time t of the day (0..1), or undefined when they are simply at home. */
-  activity(c: Citizen, t: number): Activity | undefined {
+  activity(c: Citizen, t: number): (Activity & Target) | undefined {
     const plan = this.planOf(c);
     if (!plan.length) return undefined;
     const child = c.age < this.data.town.workingAge.adult;
@@ -91,9 +111,13 @@ export class Life {
     if (t < start || t >= end) return undefined;
     const step = Math.min(plan.length - 1, Math.floor(((t - start) / (end - start)) * plan.length));
     const task = plan[step]!;
-    const dest = this.destOf(c, task);
-    const at = this.spot(dest, c.id, step);
-    const mode = child && task.where !== 'home' && !task.task.startsWith('Fetching') && !task.task.startsWith('Minding') ? 'play' : 'still';
+    const area = this.destOf(c, task);
+    const at = this.spot(area, c.id, step);
+    // A scattered area (canal bank, docks, wall...) is headed for at the exact tile of the spot, so nobody arrives
+    // on one bank and then tries to walk straight across the water to the other.
+    const dest = this.places.has(area) ? area : `tile:${Math.floor(at.y / TILE) * this.W + Math.floor(at.x / TILE)}`;
+    // Only running games are played on the run; watching the guards or skipping stones is done standing.
+    const mode = child && /^(Playing|Chasing|Racing)/.test(task.task) ? 'play' : 'still';
     return { task: task.task, dest, x: at.x, y: at.y, mode };
   }
 
@@ -121,6 +145,21 @@ export class Life {
     return { x: ((i % this.W) + 0.3 + hash(id, salt, 17) * 0.4) * TILE, y: (Math.floor(i / this.W) + 0.3 + hash(id, salt, 19) * 0.4) * TILE };
   }
 
+  private passable(x: number, y: number): boolean {
+    const tx = Math.floor(x / TILE);
+    const ty = Math.floor(y / TILE);
+    if (tx < 0 || ty < 0 || tx >= this.W || ty >= this.H) return false;
+    return this.cost[ty * this.W + tx]! < 60;
+  }
+
+  /** Walking cost from a point to a destination (0 inside it). */
+  pathCost(dest: string, x: number, y: number): number {
+    const tx = Math.floor(x / TILE);
+    const ty = Math.floor(y / TILE);
+    if (tx < 0 || ty < 0 || tx >= this.W || ty >= this.H) return Infinity;
+    return this.field(dest)[ty * this.W + tx] ?? Infinity;
+  }
+
   /** Whether a point is inside the destination (its place or one of its area tiles). */
   private arrived(dest: string, x: number, y: number): boolean {
     const tx = Math.floor(x / TILE);
@@ -139,7 +178,7 @@ export class Life {
     const place = this.places.get(dest);
     const sources = place
       ? Array.from({ length: place.w * place.h }, (_, k) => (place.y + Math.floor(k / place.w)) * W + place.x + (k % place.w))
-      : this.areas.get(dest) ?? [];
+      : dest.startsWith('tile:') ? [Number(dest.slice(5))] : this.areas.get(dest) ?? [];
     const heap = new MinHeap();
     for (const s of sources) { f[s] = 0; heap.push(s, 0); }
     while (heap.size) {
@@ -158,6 +197,75 @@ export class Life {
     }
     this.fields.set(dest, f);
     return f;
+  }
+
+  /**
+   * One frame of movement for everyone. People walk along the streets at a walking pace (children run, elders take
+   * their time); once settled at their destination they potter about their task, and children playing running
+   * games run around. The spots people head for are spread apart so nobody stands inside anybody else (spreading
+   * the spots, not the people, so walking and spreading never fight).
+   */
+  move(people: { m: Mover; to: Target }[], now: number, dt: number, speed: number): void {
+    const moving = people.map(({ m, to }) => {
+      let gx = to.x;
+      let gy = to.y;
+      const phaseOffset = hash(m.c.id, 3) * Math.PI * 2;
+      if (to.mode === 'play') {
+        const r = TILE * (0.4 + hash(m.c.id, 5) * 0.5); // small loops, so play stays around their spot
+        gx += Math.cos(now / 900 + phaseOffset) * r;
+        gy += Math.sin(now / 700 + phaseOffset) * r * 0.7;
+      } else {
+        gx += Math.sin(now / 2600 + phaseOffset) * 3;
+        gy += Math.cos(now / 3100 + phaseOffset) * 3;
+      }
+      // Settled once inside the destination; they stay settled until clearly further away (or heading somewhere
+      // new), so nobody flips between walking straight and following the street.
+      const cost = this.pathCost(to.dest, m.x, m.y);
+      if (m.settledAt !== to.dest || cost > 14) m.settledAt = cost === 0 ? to.dest : undefined;
+      return { m, to, gx, gy, near: m.settledAt === to.dest };
+    });
+
+    const ROOM = 13;
+    const settled = moving.filter((v) => v.near);
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < settled.length; i++) {
+        for (let j = i + 1; j < settled.length; j++) {
+          const a = settled[i]!;
+          const b = settled[j]!;
+          const dx = b.gx - a.gx;
+          const dy = b.gy - a.gy;
+          const d = Math.hypot(dx, dy);
+          if (d >= ROOM) continue;
+          const push = (ROOM - d) / 2;
+          const angle = hash(a.m.c.id, b.m.c.id) * Math.PI * 2;
+          const ux = d > 0.01 ? dx / d : Math.cos(angle);
+          const uy = d > 0.01 ? dy / d : Math.sin(angle);
+          a.gx -= ux * push; a.gy -= uy * push;
+          b.gx += ux * push; b.gy += uy * push;
+        }
+      }
+    }
+
+    for (const { m, to, gx, gy, near } of moving) {
+      const pace = m.c.age < this.data.town.workingAge.adult ? 1.5 : m.c.age >= this.data.town.workingAge.elder ? 0.7 : 1;
+      const walk = WALK_PX_PER_MS * pace * dt * Math.max(1, Math.min(speed, 12));
+      if (near) {
+        const dx = gx - m.x;
+        const dy = gy - m.y;
+        const d = Math.hypot(dx, dy);
+        if (d > 0.5) {
+          const step = Math.min(d, walk);
+          const nx = m.x + (dx / d) * step;
+          const ny = m.y + (dy / d) * step;
+          // Pottering about never takes anyone into the water or up onto the wall.
+          if (this.passable(nx, ny) || !this.passable(m.x, m.y)) { m.x = nx; m.y = ny; }
+        }
+      } else {
+        const at = this.walk(m, to.dest, { x: gx, y: gy }, walk);
+        m.x = at.x;
+        m.y = at.y;
+      }
+    }
   }
 
   /**
