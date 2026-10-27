@@ -3,7 +3,10 @@ import { cheapestMeal } from './agent';
 import { transfer } from './coins';
 import type { GameData } from './data';
 import { householdOf, isWorkingAge, livingMembers } from './family';
-import type { Citizen, Office, World } from './types';
+import { sellableQty } from './agent';
+import { averageCost, moveGoods, stockOf } from './inventory';
+import { askPrice } from './market';
+import type { Citizen, GoodId, Office, World } from './types';
 
 export function marketTax(world: World, data: GameData, seller: Citizen, amount: number): number {
   const tax = Math.min(seller.coins, Math.floor(amount * data.town.authority.marketTax));
@@ -15,7 +18,10 @@ function officers(world: World, office: Office): Citizen[] {
   return world.citizens.filter((c) => c.alive && c.office === office);
 }
 
-/** Hearth tax: each well-off household pays a little each day, from whoever holds its coins. The poor are exempt. Returns coins taken. */
+/**
+ * Hearth tax: each well-off household pays a small share of its savings above hearthTaxAboveDays of food,
+ * from whoever holds its coins. The poor pay nothing. Returns coins taken.
+ */
 function hearthTax(world: World, data: GameData): number {
   const a = data.town.authority;
   let taken = 0;
@@ -24,9 +30,11 @@ function hearthTax(world: World, data: GameData): number {
     if (!members.length) continue;
     const purse = members.reduce((s, m) => s + m.coins, 0);
     const daily = members.length * cheapestMeal(data, world.citizens[h.headId]!);
-    if (purse < a.hearthTaxAboveDays * daily) continue;
+    const above = purse - a.hearthTaxAboveDays * daily;
+    if (above <= 0) continue;
     const payer = [...members].sort((x, y) => y.coins - x.coins)[0]!;
-    const tax = Math.min(a.hearthTax, payer.coins);
+    const tax = Math.min(Math.floor(above * a.hearthTaxShare), payer.coins);
+    if (tax <= 0) continue;
     transfer(world, payer, world.treasury, tax, 'hearth tax');
     taken += tax;
   }
@@ -44,7 +52,8 @@ export function authorityDay(world: World, data: GameData): { tax: number; alms:
     for (const c of officers(world, office)) transfer(world, world.treasury, c, Math.min(wage, world.treasury.coins), `${office} wage`);
   }
   const wagesPerDay = officers(world, 'guard').length * a.guardWage + officers(world, 'priest').length * a.priestWage;
-  const surplus = world.treasury.coins - 21 * wagesPerDay;
+  // The treasury keeps a few weeks of wages and passes the rest on to the church a little at a time.
+  const surplus = world.treasury.coins - a.treasuryKeepDays * Math.max(wagesPerDay, a.guardWage);
   if (surplus > 0) transfer(world, world.treasury, world.church, Math.floor(surplus * a.churchGrantShare), 'church grant');
   return { tax, alms: giveAlms(world, data) };
 }
@@ -83,7 +92,7 @@ export function reviewPosts(world: World, data: GameData): string[] {
   const avgWage = a.guardWage * a.guardShare + a.priestWage * (1 - a.guardShare);
   const posts = Math.floor(budget / avgWage);
   const priests = posts > 0 ? Math.max(1, posts - Math.round(posts * a.guardShare)) : 0;
-  const want: Record<Office, number> = { guard: posts - priests, priest: priests };
+  const want: Record<'guard' | 'priest', number> = { guard: posts - priests, priest: priests };
 
   const events: string[] = [];
   // Unemployed adults from the poorest households first, then workers whose trade lost them money this week.
@@ -104,8 +113,52 @@ export function reviewPosts(world: World, data: GameData): string[] {
       const was = c.trade;
       c.trade = null;
       c.office = office;
+      c.employerHousehold = null;
       events.push(`${c.name} is taken on as a ${office}${was ? ` (was a ${was})` : ''}`);
     }
   }
   return events;
+}
+
+/**
+ * After the market: in times of plenty the authority buys cheap grain and vegetables for the public granary,
+ * up to its target, from what producers could not sell. Never while the town is short of them.
+ */
+export function stockGranary(world: World, data: GameData): void {
+  const g = data.town.granary;
+  const a = data.town.authority;
+  const wagesPerDay = officers(world, 'guard').length * a.guardWage + officers(world, 'priest').length * a.priestWage;
+  let budget = Math.floor((world.treasury.coins - a.treasuryKeepDays * Math.max(wagesPerDay, a.guardWage)) * g.budgetShare);
+  if (budget <= 0 || (world.unmet.food ?? 0) > 0) return;
+  for (const good of g.goods) {
+    if ((world.unmet[good] ?? 0) > 0) continue;
+    let room = g.targetUnits - stockOf(world.granary, good);
+    const ceiling = data.goods.get(good)!.basePrice * g.buyBelow;
+    const sellers = world.citizens
+      .filter((c) => c.alive && c.prices[good] !== undefined && sellableQty(world, data, c, good) > 0 && askPrice(c, good) <= ceiling)
+      .sort((x, y) => askPrice(x, good) - askPrice(y, good));
+    for (const seller of sellers) {
+      if (room <= 0 || budget <= 0) break;
+      const price = askPrice(seller, good);
+      const n = Math.min(room, sellableQty(world, data, seller, good), Math.floor(budget / price));
+      if (n <= 0) break;
+      transfer(world, world.treasury, seller, n * price, `granary buys ${n} ${good}`);
+      moveGoods(seller, world.granary, good, n, price);
+      seller.today.sold[good] = (seller.today.sold[good] ?? 0) + n;
+      room -= n;
+      budget -= n * price;
+    }
+  }
+}
+
+/** What the granary charges in a shortage: what it paid, rounded up. */
+export function granaryPrice(world: World, good: GoodId): number | undefined {
+  const cost = averageCost(world.granary, good);
+  return cost === undefined ? undefined : Math.max(1, Math.ceil(cost));
+}
+
+/** Sells from the granary at cost; the coins go back to the treasury. */
+export function sellFromGranary(world: World, buyer: Citizen, good: GoodId, n: number, price: number): void {
+  transfer(world, buyer, world.treasury, n * price, `granary sells ${n} ${good}`);
+  moveGoods(world.granary, buyer, good, n, price);
 }

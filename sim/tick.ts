@@ -1,6 +1,6 @@
 // One day: everyone eats if hungry, then works, then trades, then rests.
 import { isFood, isWorkInput, shopsForSelf } from './agent';
-import { authorityDay, reviewPosts } from './authority';
+import { authorityDay, reviewPosts, stockGranary } from './authority';
 import { totalCoins, townCoins } from './coins';
 import { householdNeedMult, rollEvents } from './events';
 import type { GameData } from './data';
@@ -10,6 +10,7 @@ import { findWork, reconsiderWork } from './jobs';
 import { adjustPrices, newTally, tradePhase } from './market';
 import { driftNeighbourPrices } from './neighbours';
 import { work } from './production';
+import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
 
 export function tick(world: World, data: GameData): DayReport {
@@ -25,7 +26,9 @@ export function tick(world: World, data: GameData): DayReport {
   for (const c of world.citizens) work(world, data, c);
   const tally = newTally();
   tradePhase(world, data, tally);
+  stockGranary(world, data);
   const { tax: hearth, alms } = authorityDay(world, data);
+  familyEvents.push(...payServants(world, data));
   world.taxHistory = [...world.taxHistory, tally.tax + hearth].slice(-28);
   for (const c of world.citizens) {
     if (!c.alive) continue;
@@ -33,7 +36,7 @@ export function tick(world: World, data: GameData): DayReport {
     c.needs.sleep = 1;
   }
   if (world.day % data.town.jobChange.everyDays === 0) jobChanges.push(...reconsiderWork(world, data));
-  if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data));
+  if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data), ...hireServants(world, data));
 
   const living = world.citizens.filter((c) => c.alive);
   const adults = living.filter((c) => isWorkingAge(data, c));
@@ -47,9 +50,11 @@ export function tick(world: World, data: GameData): DayReport {
     church: world.church.coins,
     guards: living.filter((c) => c.office === 'guard').length,
     priests: living.filter((c) => c.office === 'priest').length,
+    servants: living.filter((c) => c.office === 'servant').length,
     unemployed: adults.filter((c) => !c.trade && !c.office).length,
     workingAge: adults.length,
     alms,
+    granary: world.granary.inventory.reduce((s, l) => s + l.qty, 0),
     imports: tally.imports,
     exports: tally.exports,
     eventsStarted,
@@ -72,11 +77,16 @@ export function runDays(world: World, data: GameData, days: number, onDay?: (r: 
   }
 }
 
-/** Everyone eats from the household larder (the head's), then from their own stock. Children eat first, then elders. */
+/**
+ * Everyone eats from the household larder (the head's), then from their own stock. Families share: whoever has
+ * gone hungry longest eats first, then children, then elders, then working adults.
+ */
 function eatPhase(world: World, data: GameData, events: string[]): Citizen[] {
   const starved: Citizen[] = [];
-  const living = world.citizens.filter((c) => c.alive).sort((a, b) => a.age - b.age);
-  const order = [...living.filter((c) => c.age < data.town.workingAge.adult), ...living.filter((c) => c.age >= data.town.workingAge.elder), ...living.filter((c) => c.age >= data.town.workingAge.adult && c.age < data.town.workingAge.elder)];
+  const { adult, elder } = data.town.workingAge;
+  const rank = (c: Citizen) => (c.age < adult ? 0 : c.age >= elder ? 1 : 2);
+  const order = world.citizens.filter((c) => c.alive)
+    .sort((a, b) => b.needs.daysHungry - a.needs.daysHungry || rank(a) - rank(b) || a.age - b.age);
   for (const c of order) {
     const head = headOf(world, c);
     const larders = head.alive && head !== c ? [head, c] : [c];

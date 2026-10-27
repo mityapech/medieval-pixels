@@ -1,9 +1,9 @@
 // How people choose work. No rescues: each person compares what trades earn with what they can afford to start.
 import { cheapestMeal, seenPrice, trait } from './agent';
 import type { GameData } from './data';
-import { headOf, householdOf, isHead, isWorkingAge, livingMembers, takeUpTrade } from './family';
+import { headOf, householdOf, isHead, isWorkingAge, kinOf, livingMembers, takeUpTrade } from './family';
 import { stockOf } from './inventory';
-import { random } from './rng';
+import { random, shuffle } from './rng';
 import type { Citizen, DayReport, Trade, World } from './types';
 import { TRADES } from './types';
 
@@ -23,14 +23,21 @@ export function entryCost(data: GameData, c: Citizen, trade: Trade): number {
   return Math.ceil(cost);
 }
 
-/** What a typical worker in each trade gained or lost over the past week (median). */
-function weeklyEarnings(world: World): Record<Trade, number> {
-  const typical = {} as Record<Trade, number>;
+/**
+ * What this person believes each trade earns: the average weekly gain of a few practitioners they know
+ * (kin first, then whoever they happen to meet). People judge from different samples, so they do not all
+ * rush into the same trade at once. A trade they know nobody in looks like an untested opening (0).
+ */
+function knownEarnings(world: World, data: GameData, c: Citizen): Record<Trade, number> {
+  const kin = new Set(kinOf(world, c).map((k) => k.person));
+  const known = {} as Record<Trade, number>;
   for (const t of TRADES) {
-    const nets = world.citizens.filter((c) => c.alive && c.trade === t && c.coinHistory.length).map(net).sort((a, b) => a - b);
-    typical[t] = nets.length ? nets[Math.floor(nets.length / 2)]! : 0; // an empty trade looks like an untested opening
+    const workers = world.citizens.filter((w) => w.alive && w !== c && w.trade === t && w.coinHistory.length);
+    const sample = [...workers.filter((w) => kin.has(w)), ...shuffle(world, workers.filter((w) => !kin.has(w)))]
+      .slice(0, data.town.jobChange.acquaintances);
+    known[t] = sample.length ? sample.reduce((s, w) => s + net(w), 0) / sample.length : 0;
   }
-  return typical;
+  return known;
 }
 
 function net(c: Citizen): number {
@@ -60,10 +67,10 @@ export function householdStruggling(world: World, data: GameData, c: Citizen): b
  */
 export function findWork(world: World, data: GameData): JobChange[] {
   const { jobChange } = data.town;
-  const typical = weeklyEarnings(world);
   const changes: JobChange[] = [];
   for (const c of world.citizens) {
     if (!c.alive || c.trade || c.office || !isWorkingAge(data, c)) continue;
+    const typical = knownEarnings(world, data, c);
     const struggling = householdStruggling(world, data, c);
     const to = bestAffordable(world, data, c, typical);
     if (!to) continue;
@@ -81,13 +88,26 @@ export function findWork(world: World, data: GameData): JobChange[] {
  */
 export function reconsiderWork(world: World, data: GameData): JobChange[] {
   const { jobChange } = data.town;
-  const typical = weeklyEarnings(world);
   const changes: JobChange[] = [];
   for (const c of world.citizens) {
-    if (!c.alive || !c.trade || !c.coinHistory.length) continue;
+    if (!c.alive || !c.coinHistory.length) continue;
+    if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult')) continue;
+    const typical = knownEarnings(world, data, c);
+    // Servants and other post-holders go back to a trade when one clearly pays better than their wage.
+    if (c.office) {
+      const to = bestAffordable(world, data, c, typical);
+      const mine = net(c);
+      if (!to || typical[to] < 2 * Math.max(mine, jobChange.minGain) || typical[to] - mine < 4 * jobChange.minGain) continue;
+      const was = c.office;
+      c.office = null;
+      c.employerHousehold = null;
+      takeUpTrade(data, c, to);
+      changes.push({ id: c.id, name: c.name, from: null, to, reason: `leaves post as ${was}: ${to}s earn more (week: ${mine} vs ${typical[to]})` });
+      continue;
+    }
+    if (!c.trade) continue;
     const from = c.trade;
     const mine = net(c);
-    if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult')) continue;
 
     const head = headOf(world, c);
     const comfortable = head.coins >= jobChange.quitWhenSavedDays * cheapestMeal(data, head) * livingMembers(world, householdOf(world, c)).length;

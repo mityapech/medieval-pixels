@@ -1,13 +1,13 @@
 // Inventory of lots, and batch records for traceability.
-import type { Batch, BatchId, Citizen, GoodId, Lot, World } from './types';
+import type { Batch, BatchId, Citizen, GoodId, Holder, Lot, World } from './types';
 
-export function stockOf(c: Citizen, good: GoodId): number {
+export function stockOf(c: Holder, good: GoodId): number {
   let n = 0;
   for (const lot of c.inventory) if (lot.good === good) n += lot.qty;
   return n;
 }
 
-export function addLot(c: Citizen, lot: Lot): void {
+export function addLot(c: Holder, lot: Lot): void {
   if (lot.qty <= 0) return;
   // Tools stay as separate items; other goods from the same batch at the same cost merge.
   const same = lot.durability === undefined
@@ -18,7 +18,7 @@ export function addLot(c: Citizen, lot: Lot): void {
 }
 
 /** Removes qty of a good, oldest first. Returns what was taken, batch by batch. */
-export function takeGoods(c: Citizen, good: GoodId, qty: number): Lot[] {
+export function takeGoods(c: Holder, good: GoodId, qty: number): Lot[] {
   const taken: Lot[] = [];
   let left = qty;
   for (const lot of c.inventory) {
@@ -35,7 +35,7 @@ export function takeGoods(c: Citizen, good: GoodId, qty: number): Lot[] {
 }
 
 /** Moves goods between people, keeping their batch (so they stay traceable) but resetting cost to the price paid. */
-export function moveGoods(from: Citizen, to: Citizen, good: GoodId, qty: number, unitPrice: number): void {
+export function moveGoods(from: Holder, to: Holder, good: GoodId, qty: number, unitPrice: number): void {
   for (const lot of takeGoods(from, good, qty)) addLot(to, { ...lot, unitCost: unitPrice });
 }
 
@@ -59,7 +59,7 @@ export function makeImportBatch(world: World, good: GoodId, qty: number, origin:
   return batch;
 }
 
-export function averageCost(c: Citizen, good: GoodId): number | undefined {
+export function averageCost(c: Holder, good: GoodId): number | undefined {
   let qty = 0;
   let cost = 0;
   for (const lot of c.inventory) {

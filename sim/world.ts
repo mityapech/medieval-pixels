@@ -5,7 +5,7 @@ import type { GameData } from './data';
 import { isWorkingAge } from './family';
 import { addLot, makeBatch } from './inventory';
 import { pick, random, randomInt, shuffle } from './rng';
-import type { BatchId, Citizen, GoodId, Household, Trade, World } from './types';
+import type { BatchId, Citizen, GoodId, Holder, Household, Trade, World } from './types';
 import { TRADES } from './types';
 
 const EXCLUSIVE_TRAITS = [['hardworking', 'lazy'], ['stubborn', 'restless']];
@@ -24,6 +24,7 @@ export function createWorld(data: GameData, seed = 1): World {
     reports: [],
     treasury: { key: 'treasury', name: 'Town treasury', coins: data.town.authority.startTreasury },
     church: { key: 'church', name: 'Church', coins: data.town.authority.startChurch },
+    granary: { name: 'Town granary', inventory: [] },
     neighbours: [],
     events: [],
     unmet: {},
@@ -84,6 +85,8 @@ export function createWorld(data: GameData, seed = 1): World {
       if (!Object.keys(r.inputs).length && i === 0) for (const [g, q] of Object.entries(r.outputs)) seedGood(world, data, c, g, q);
     });
   }
+  // The public granary starts with some stores laid by in earlier years.
+  for (const good of town.granary.goods) seedGood(world, data, world.granary, good, Math.round(town.granary.targetUnits * town.granary.startShare));
   return world;
 }
 
@@ -112,7 +115,7 @@ function generateFamilies(world: World, data: GameData): void {
       while (usedNames.has(name));
       usedNames.add(name);
       const c: Citizen = {
-        id: world.citizens.length, key: `citizen:${world.citizens.length}`, name, age, office: null, traits: rollTraits(world, data), trade: null,
+        id: world.citizens.length, key: `citizen:${world.citizens.length}`, name, age, office: null, employerHousehold: null, traits: rollTraits(world, data), trade: null,
         householdId: h.id, spouseId: null, parentIds: parents.map((p) => p.id), home: 'unassigned',
         coins: 0, inventory: [], needs: { daysHungry: 0, daysCold: 0, sleep: 1 }, alive: true,
         prices: {}, seen: {}, today: { offered: {}, sold: {}, missed: {} }, coinHistory: [],
@@ -206,7 +209,7 @@ function rollTraits(world: World, data: GameData): string[] {
 }
 
 /** Creates founding stock made by a citizen of the right trade, with traceable input batches. */
-function seedGood(world: World, data: GameData, holder: Citizen, good: GoodId, qty: number): void {
+function seedGood(world: World, data: GameData, holder: Holder, good: GoodId, qty: number): void {
   const batch = seedBatch(world, data, good, qty);
   const def = data.goods.get(good)!;
   if (def.kind === 'tool') {

@@ -12,5 +12,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["sim", "render", "data", "tests", "vite.config.ts"]
+  "include": ["sim", "render", "data", "tests", "scripts", "vite.config.ts"]
 }

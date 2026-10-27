@@ -1,18 +1,18 @@
-// Trade phase. Merchants' stalls are on the market square where everyone sees them. Bakers' shops,
-// farms, quarries and smithies are spread around town, so a buyer only learns the prices of the few they visit.
+// Trade phase. Producers bring their stock to the market square and merchants keep stalls there, so buyers
+// see every offer. Merchants are the ones who walk out to producers and to other towns.
 import {
   cheapestMeal, foodReserveCoins, foodStock, foodTarget, householdNeedTarget, householdSize, isFood, makesGood, observePrice, recipesOf,
   seenPrice, sellableQty, shopsForSelf, traitSum, trait,
 } from './agent';
 import { transfer } from './coins';
-import { householdOf, isHead, livingMembers } from './family';
+import { householdOf, isHead, kinOf, livingMembers } from './family';
 import type { GameData } from './data';
 import { addLot, averageCost, makeImportBatch, moveGoods, stockOf, takeGoods } from './inventory';
 import { bestExport, bestImport } from './neighbours';
-import { marketTax } from './authority';
+import { granaryPrice, marketTax, sellFromGranary } from './authority';
 import { rankRecipes, workingTool } from './production';
 import { random, shuffle } from './rng';
-import type { Citizen, GoodId, World } from './types';
+import type { Citizen, GoodId, Neighbour, World } from './types';
 
 /** Everything the trade phase counts for the day's report. */
 export interface DayTally {
@@ -53,6 +53,7 @@ export function tradePhase(world: World, data: GameData, tally: DayTally): void 
     if (short > 0) buyBest(world, data, buyer, foods, short, 0, tally, FOOD);
   }
   for (const buyer of shoppers) shop(world, data, buyer, tally);
+  consignExports(world, data, tally);
   // Remembered until tomorrow, when merchants decide what to bring in from outside.
   world.unmet = tally.unmet;
 }
@@ -67,20 +68,28 @@ function buy(world: World, data: GameData, buyer: Citizen, seller: Citizen, good
   s.qty += qty;
 }
 
-/** Who a buyer checks for a good today: every shop on the square, plus a few producers' doors. */
+/** Who has a good on offer today: merchants' stalls and any producer who brought stock to the market square. */
 function sellersToVisit(world: World, data: GameData, buyer: Citizen, good: GoodId): Citizen[] {
-  const merchants = world.citizens.filter((c) => c.alive && c !== buyer && c.trade === 'merchant');
-  const producers = shuffle(world, world.citizens.filter((c) => c.alive && c !== buyer && c.trade !== 'merchant' && makesGood(data, c, good)));
-  const visits = (isFood(data, good) ? data.town.shopVisitsPerDay : data.town.producerVisitsPerDay) + traitSum(data, buyer, 'extraVisits');
-  return [...merchants, ...producers.slice(0, visits)];
+  return shuffle(world, world.citizens.filter((c) => c.alive && c !== buyer && c.prices[good] !== undefined
+    && (c.trade === 'merchant' || makesGood(data, c, good) || sellableQty(world, data, c, good) > 0)));
 }
 
-/** Buys up to qty units of any of the goods, best value first, without spending below keepCoins. Shortfalls count as unmet demand. */
+/**
+ * Buys up to qty units of any of the goods, best value first, without spending below keepCoins. Having the good
+ * brought in from a neighbouring town is always one of the options (unless unmetKey is null), so local prices
+ * cannot stay above what an import costs. Shortfalls count as unmet demand.
+ */
 function buyBest(
   world: World, data: GameData, buyer: Citizen, goods: GoodId[], qty: number, keepCoins: number, tally: DayTally,
   unmetKey: string | null = goods[0]!,
 ): number {
-  const offers: { seller: Citizen; good: GoodId; price: number; value: number }[] = [];
+  type Offer = { seller?: Citizen; good: GoodId; price: number; value: number; from?: Neighbour; unitCost?: number; granary?: boolean };
+  const offers: Offer[] = [];
+  // How much taste matters depends on what the household can spare: the comfortable pay for bread and tarts,
+  // the poor go for whatever fills them most cheaply.
+  const purse = livingMembers(world, householdOf(world, buyer)).reduce((s, m) => s + m.coins, 0);
+  const taste = Math.min(1, purse / Math.max(1, comfortLine(world, data, buyer) * livingMembers(world, householdOf(world, buyer)).length));
+  const appeal = (g: GoodId) => Math.pow(data.goods.get(g)!.appeal ?? 1, taste);
   const visited = new Set<Citizen>();
   for (const good of goods) {
     for (const seller of sellersToVisit(world, data, buyer, good)) visited.add(seller);
@@ -88,28 +97,61 @@ function buyBest(
   for (const seller of visited) {
     for (const good of goods) {
       if (seller.prices[good] === undefined) continue;
-      if (sellableQty(world, data, seller, good) <= 0) {
-        if (makesGood(data, seller, good)) seller.today.missed[good] = (seller.today.missed[good] ?? 0) + 1;
-        continue;
-      }
+      if (sellableQty(world, data, seller, good) <= 0) continue;
       const price = askPrice(seller, good);
       observePrice(data, buyer, good, price);
-      offers.push({ seller, good, price, value: price / (data.goods.get(good)!.appeal ?? 1) });
+      offers.push({ seller, good, price, value: price / appeal(good) });
     }
   }
-  offers.sort((a, b) => a.value - b.value);
+  // In a shortage the public granary opens and sells at cost.
+  for (const good of goods) {
+    const price = granaryPrice(world, good);
+    if (price !== undefined && shortHere(world, data, good)) offers.push({ good, price, value: price / appeal(good), granary: true });
+  }
+  if (unmetKey) {
+    for (const good of goods) {
+      const imp = bestImport(world, data, good);
+      if (!imp) continue;
+      const price = Math.ceil(imp.unitCost * (1 + data.town.neighbours.merchantFee));
+      offers.push({ good, price, value: price / appeal(good), from: imp.from, unitCost: imp.unitCost });
+    }
+  }
+  // Local goods win ties.
+  offers.sort((a, b) => a.value - b.value || Number(!!a.from) - Number(!!b.from));
   let bought = 0;
+  let localShort = false;
   for (const o of offers) {
     if (bought >= qty) break;
-    const n = Math.min(qty - bought, sellableQty(world, data, o.seller, o.good), Math.floor((buyer.coins - keepCoins) / o.price));
-    if (n <= 0) continue;
-    buy(world, data, buyer, o.seller, o.good, n, o.price, tally);
-    bought += n;
+    const afford = Math.floor((buyer.coins - keepCoins) / o.price);
+    if (o.seller) {
+      const n = Math.min(qty - bought, sellableQty(world, data, o.seller, o.good), afford);
+      if (n <= 0) continue;
+      buy(world, data, buyer, o.seller, o.good, n, o.price, tally);
+      bought += n;
+    } else if (o.granary) {
+      const n = Math.min(qty - bought, stockOf(world.granary, o.good), afford);
+      if (n <= 0) continue;
+      sellFromGranary(world, buyer, o.good, n, o.price);
+      const s = (tally.trades[o.good] ??= { coins: 0, qty: 0 });
+      s.coins += n * o.price;
+      s.qty += n;
+      bought += n;
+    } else {
+      localShort = true;
+      const n = Math.min(qty - bought, afford);
+      if (n <= 0) continue;
+      bought += importOrder(world, data, buyer, o.good, n, o.price, o.from!, o.unitCost!, tally);
+    }
   }
-  if (unmetKey && bought < qty) {
-    bought += importOrder(world, data, buyer, goods, qty - bought, keepCoins, tally);
-    if (bought < qty) tally.unmet[unmetKey] = (tally.unmet[unmetKey] ?? 0) + qty - bought;
+  if (unmetKey && (bought < qty || localShort)) {
+    // Producers who had none to sell hear that buyers went elsewhere or away empty-handed.
+    for (const seller of visited) {
+      for (const good of goods) {
+        if (makesGood(data, seller, good) && sellableQty(world, data, seller, good) <= 0) seller.today.missed[good] = (seller.today.missed[good] ?? 0) + 1;
+      }
+    }
   }
+  if (unmetKey && bought < qty) tally.unmet[unmetKey] = (tally.unmet[unmetKey] ?? 0) + qty - bought;
   return bought;
 }
 
@@ -128,15 +170,18 @@ function shop(world: World, data: GameData, buyer: Citizen, tally: DayTally): vo
   if (!buyer.trade) return;
 
   const reserve = foodReserveCoins(world, data, buyer);
-  // 4. Tools for the job, when the current one is nearly worn out.
+  // 4. Tools for the job, when the current one is nearly worn out. A tool multiplies a day's output,
+  // so a worker will dig into savings for one, keeping back only a day of food.
   const tools = new Set(recipesOf(data, buyer).flatMap((r) => (r.tool ? [r.tool] : [])));
+  const workReserve = Math.ceil(reserve / data.town.reserveDays);
   for (const tool of tools) {
     const t = workingTool(buyer, tool);
-    if (!t || t.durability! <= 2) buyBest(world, data, buyer, [tool], 1, reserve, tally);
+    if (!t || t.durability! <= 2) buyBest(world, data, buyer, [tool], 1, workReserve, tally);
   }
-  // 5. Inputs for tomorrow's work.
+  // 5. Inputs for tomorrow's work. Only recipes expected to turn a profit are planned, and without
+  // inputs there is no income at all, so these too may use savings down to a day of food.
   for (const [good, qty] of Object.entries(inputsWanted(world, data, buyer))) {
-    if (qty > 0) buyBest(world, data, buyer, [good], qty, reserve, tally);
+    if (qty > 0) buyBest(world, data, buyer, [good], qty, workReserve, tally);
   }
 }
 
@@ -208,29 +253,22 @@ function merchantRounds(world: World, data: GameData, m: Citizen, tally: DayTall
 }
 
 /**
- * When the town has none to sell, a buyer can ask a merchant to fetch it from a neighbouring town,
- * paying the import cost plus the merchant's fee up front. Returns units delivered.
+ * Has goods brought in from a neighbouring town: through a local merchant if there is one, otherwise a travelling
+ * trader from that town, who keeps the fee there. The buyer pays the import cost plus the fee. Returns units delivered.
  */
 function importOrder(
-  world: World, data: GameData, buyer: Citizen, goods: GoodId[], qty: number, keepCoins: number, tally: DayTally,
+  world: World, data: GameData, buyer: Citizen, good: GoodId, n: number, price: number, from: Neighbour, unitCost: number, tally: DayTally,
 ): number {
   const merchants = world.citizens.filter((c) => c.alive && c.trade === 'merchant' && c !== buyer);
-  if (!merchants.length) return 0;
-  const options = goods.flatMap((g) => {
-    const offer = bestImport(world, data, g);
-    return offer ? [{ good: g, offer, value: offer.unitCost / (data.goods.get(g)!.appeal ?? 1) }] : [];
-  }).sort((a, b) => a.value - b.value);
-  const choice = options[0];
-  if (!choice) return 0;
-  const { good, offer } = choice;
-  const price = Math.ceil(offer.unitCost * (1 + data.town.neighbours.merchantFee));
-  const n = Math.min(qty, Math.floor((buyer.coins - keepCoins) / price));
-  if (n <= 0) return 0;
-  const m = merchants[Math.floor(random(world) * merchants.length)]!;
-  transfer(world, buyer, m, n * price, `order of ${n} ${good} from ${offer.from.name}`);
-  tally.tax += marketTax(world, data, m, n * price);
-  transfer(world, m, offer.from, n * offer.unitCost, `import ${n} ${good}`);
-  const batch = makeImportBatch(world, good, n, offer.from.name);
+  const m = merchants.length ? merchants[Math.floor(random(world) * merchants.length)]! : undefined;
+  if (m) {
+    transfer(world, buyer, m, n * price, `order of ${n} ${good} from ${from.name}`);
+    tally.tax += marketTax(world, data, m, n * price);
+    transfer(world, m, from, n * unitCost, `import ${n} ${good}`);
+  } else {
+    transfer(world, buyer, from, n * price, `import ${n} ${good} via a travelling trader`);
+  }
+  const batch = makeImportBatch(world, good, n, from.name);
   const def = data.goods.get(good)!;
   if (def.kind === 'tool') {
     for (let i = 0; i < n; i++) addLot(buyer, { batch: batch.id, good, qty: 1, unitCost: price, durability: def.durability! });
@@ -238,11 +276,47 @@ function importOrder(
     addLot(buyer, { batch: batch.id, good, qty: n, unitCost: price });
   }
   observePrice(data, buyer, good, price);
-  tally.imports += n * offer.unitCost;
+  tally.imports += n * unitCost;
   const s = (tally.trades[good] ??= { coins: 0, qty: 0 });
   s.coins += n * price;
   s.qty += n;
   return n;
+}
+
+/**
+ * After the market closes, producers holding more unsold goods than they keep in stock can consign the excess to a
+ * merchant (or a travelling trader, if the town has none), who sells it in a neighbouring town and pays the producer
+ * the takings less the fee. Nothing the town went short of is sent away.
+ */
+function consignExports(world: World, data: GameData, tally: DayTally): void {
+  const merchants = world.citizens.filter((c) => c.alive && c.trade === 'merchant');
+  const fee = data.town.neighbours.merchantFee;
+  for (const p of world.citizens) {
+    if (!p.alive || !p.trade || p.trade === 'merchant') continue;
+    for (const r of recipesOf(data, p)) {
+      for (const [good, q] of Object.entries(r.outputs)) {
+        if (shortHere(world, data, good)) continue;
+        // Only the overstock that would otherwise stop them working (see outputTarget).
+        const qty = Math.min(sellableQty(world, data, p, good), stockOf(p, good) - q * data.town.outputStockBatches);
+        if (qty <= 0) continue;
+        const deal = bestExport(world, data, good, qty);
+        if (!deal) continue;
+        const toProducer = Math.floor(deal.unitPrice * (1 - fee));
+        const floor = (averageCost(p, good) ?? 0) * data.town.pricing.minMargin;
+        if (toProducer < Math.max(1, floor)) continue;
+        const m = merchants.length ? merchants[Math.floor(random(world) * merchants.length)]! : undefined;
+        if (m) {
+          transfer(world, deal.to, m, qty * deal.unitPrice, `export ${qty} ${good}`);
+          transfer(world, m, p, qty * toProducer, `consigned ${qty} ${good}`);
+        } else {
+          transfer(world, deal.to, p, qty * toProducer, `export ${qty} ${good} via a travelling trader`);
+        }
+        tally.tax += marketTax(world, data, p, qty * toProducer);
+        takeGoods(p, good, qty);
+        tally.exports += qty * deal.unitPrice;
+      }
+    }
+  }
 }
 
 /** Whether people in town went without this good yesterday (any food counts when meals ran short). */
@@ -345,14 +419,42 @@ function supportHouseholds(world: World, data: GameData): void {
       cost += Math.max(0, householdNeedTarget(world, data, head, need.good) - stockOf(head, need.good)) * seenPrice(data, head, need.good);
     }
     let short = Math.ceil(cost) - head.coins;
-    const helpers = livingMembers(world, h).filter((m) => m !== head).sort((a, b) => b.coins - a.coins);
+    const members = livingMembers(world, h);
+    const helpers = members.filter((m) => m !== head).sort((a, b) => b.coins - a.coins);
     for (const m of helpers) {
       if (short <= 0) break;
       const give = Math.min(m.coins, short);
       if (give > 0) transfer(world, m, head, give, 'household support');
       short -= give;
     }
+    if (short <= 0) continue;
+    // Still short: kin living elsewhere help, if their own household is comfortable.
+    const kin = [...new Set(members.flatMap((m) => kinOf(world, m).map((k) => k.person)))].filter((k) => k.householdId !== h.id);
+    for (const k of kin) {
+      if (short <= 0) break;
+      const spare = k.coins - comfortLine(world, data, k);
+      const give = Math.min(Math.floor(spare), short);
+      if (give > 0) transfer(world, k, head, give, `kin support from ${k.name}`);
+      short -= Math.max(0, give);
+    }
+    // Someone here has already gone hungry: the comfortable give alms, as a matter of duty.
+    if (short <= 0 || !members.some((m) => m.needs.daysHungry > 0)) continue;
+    const givers = world.citizens.filter((g) => g.alive && g.householdId !== h.id && g.coins > comfortLine(world, data, g))
+      .sort((a, b) => b.coins - comfortLine(world, data, b) - (a.coins - comfortLine(world, data, a)));
+    for (const g of givers) {
+      if (short <= 0) break;
+      const give = Math.min(Math.floor((g.coins - comfortLine(world, data, g)) * data.town.charityShare), short);
+      if (give > 0) transfer(world, g, head, give, `alms from ${g.name}`);
+      short -= Math.max(0, give);
+    }
   }
+}
+
+/** Coins a household keeps before it can spare any: comfort.thresholdDays of its food, shared over its members. */
+export function comfortLine(world: World, data: GameData, c: Citizen): number {
+  const members = livingMembers(world, householdOf(world, c));
+  const daily = members.length * cheapestMeal(data, c) + seenPrice(data, c, 'wood');
+  return (data.town.comfort.thresholdDays * daily) / Math.max(1, members.filter((m) => m.coins > 0).length);
 }
 
 /** Spends part of a well-off household's savings on comforts, used up the same day. Returns coins spent. */

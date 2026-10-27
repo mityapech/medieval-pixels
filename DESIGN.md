@@ -45,15 +45,18 @@ Roughly 40 workers plus dependents. Some people can be unemployed, which gives t
 ### Choosing and changing work
 
 - There are no hand-made rescues. People change work only by the same rules, for the same reasons.
-- Every week, a worker who lost money looks at what each trade earned (median) and what it costs to start (tools, a day of inputs, a merchant's stock money). They move to the best trade they can **afford**.
+- Every few days (3 by default), a worker who lost money looks at what each trade earns and what it costs to start (tools, a day of inputs, a merchant's stock money), and moves to the best trade they can **afford**.
+- People judge a trade by the few practitioners they know (kin first, then whoever they meet), not by a town-wide average. Because everyone sees a different sample, the town does not stampede into one trade at once.
 - Laborer is the trade anyone can start with nothing, by hand if they have no tools, so a failing farmer, baker or merchant naturally steps down to it. People can also move up when they have saved enough.
 - An unemployed adult takes up work when the household runs short of money for food or firewood, and now and then when a trade is clearly paying well. A worker in a comfortable household may stop working.
-- Changing trade is damped (a weekly chance, and moving up needs a large gap), so the whole town does not stampede into the same trade at once.
+- Moving up to a better trade needs a large gap. Guards, priests and servants go back to a trade when one clearly pays better than their wage.
 
 ### Food and comfort
 
 - Baked goods are preferred, but raw vegetables and fruit can be eaten too (lower appeal): the poor eat pottage, and farm households eat what they grow.
 - Someone with no food for 7 days in a row starves (a setting in `data/town.json`).
+- Families share: whoever has gone hungry longest eats first, then children, then elders, then working adults.
+- How much taste matters depends on what a household can spare: the comfortable buy bread and tarts, the poor buy whatever fills them most cheaply.
 - Well-off households (savings above about 10 days of living costs) spend a small share of the excess each day on comforts, used up the same day: for now, extra firewood. Luxury goods will join this basket in the wealth milestone.
 
 ## 5. Trades
@@ -99,10 +102,31 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 - Merchants export surplus when a neighbour pays more, but not goods the town went short of yesterday. Imported batches record the town they came from.
 - This makes the merchant valuable in bad times (a crop failure at home means good business importing grain) without letting them control everything: imports are dearer than local goods in normal times.
 
+### How the market works
+
+- Producers bring their stock to the market square and merchants keep stalls there, so every buyer sees every offer. Merchants are the ones who walk out to producers and to other towns.
+- Having a good brought in from a neighbouring town is always one of a buyer's options, so local prices cannot stay above what an import costs. There is no other price cap.
+- After the market closes, producers holding more than their working stock can consign the excess to a merchant for export, receiving the takings less the merchant's fee.
+- If the town has no merchant, **travelling traders** from the neighbouring towns handle imports and exports, and the fee leaves town.
+- A neighbouring town's prices follow its money (price level = (coins / starting coins) ^ 0.5). A town that buys too much from abroad finds imports getting dearer and exports paying more, so coins drift back (price-specie flow).
+- Workers keep back a day of food when buying the tools and inputs they need to work: without them there is no income at all.
+
+### Hand work
+
+- Without an iron tool, people work by hand at a fraction of the output: farming with a wooden spade at 60%, gathering deadwood at 50%, mining at 15%. Iron tools last 40 days of use.
+
 ## 7a. Town authority, militia and church
 
 - The **treasury** collects the market tax. Each week it decides how many paid posts it can afford: **guards** (the militia) and **priests** (the church). Posts go to unemployed adults, from struggling households first. If money runs short, posts are cut.
-- The **church** receives a share of the treasury's surplus and gives **alms** (coins for food) to households where someone is going hungry or the purse is empty.
+- The treasury keeps two weeks of wages and passes the rest to the **church** a little each day. The church gives **alms** (coins for food) to households where someone is going hungry or the purse is empty.
+- The hearth tax is progressive: a small daily share of a household's savings above 10 days of food. The poor pay nothing.
+- The **public granary**: in good times the authority buys cheap wheat and vegetables (up to a target store) from what producers could not sell, and in a shortage sells them at cost. The town starts with full stores.
+
+## 7c. Family support, charity and service
+
+- When a household cannot afford its food and firewood, its own members chip in first, then kin in other households who are comfortable.
+- If someone has already gone hungry, the comfortable give **alms** directly, as a religious duty.
+- **Domestic service** (the first form of hiring): households with savings well above comfort take on servants from poorer households, the idle first, and pay a daily wage worth a few meals. A household that can no longer pay lets the servant go.
 - The **militia** protects the roads and the town: the more guards, the smaller the damage from bandits and other troubles.
 - Unemployment is allowed and reported. It is kept in check by the same rules, not by force: struggling households send adults to work, laborer needs no money to start, and paid posts absorb some idle adults.
 
@@ -149,13 +173,15 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 
 ## 10. Build order
 
-1. **Goods economy**, no land yet. 60 NPCs, five trades, run from the terminal.
-2. **Debug view.** Colored squares, price and money panel.
-3. **Land and buildings.** Plots, deeds, construction, buying, selling and renting.
-4. **Player as a citizen.**
-5. **Wealth and luxuries.** Luxury goods and their makers (silk, pottery, fine cooking), wealth tiers in what households buy and where they live (shabby rented rooms to large townhouses). Needs the land milestone for housing.
-6. **Polish and expansion.** Pixel art, more trades, laws, reputation, elections, fully simulated neighbouring towns.
-7. **Multiplayer**, if ever.
+1. **Goods economy**, no land yet. 60 NPCs, five trades, run from the terminal. *(Done.)*
+2. **Stats page.** A browser page that runs the simulation and charts the town over time: goods produced, median wealth, population, prices, jobs, money flows.
+3. **Citizen memories and dialogue.** Citizens remember what happened to them and talk about their work, past events, worries and hopes, generated from their records, never scripted. Conversations have a place, so a player nearby can overhear them.
+4. **Functional UI and bare-bones graphics (debug view).** A map of coloured squares and labels: homes, workshops, the market, the church. People move between them through the day, conversations appear near them, and clicking anything shows its record. Price and money panel.
+5. **Land and buildings.** Plots, deeds, construction, buying, selling and renting.
+6. **Player as a citizen.**
+7. **Wealth and luxuries.** Luxury goods and their makers (silk, pottery, fine cooking), wealth tiers in what households buy and where they live (shabby rented rooms to large townhouses). Needs the land milestone for housing.
+8. **Polish and expansion.** Pixel art, more trades, laws, reputation, elections, fully simulated neighbouring towns.
+9. **Multiplayer**, if ever.
 
 ## 11. Tests
 
@@ -174,7 +200,7 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 - Who owns the land at the start, and does the town keep any?
 - What happens to a citizen's property when they die (inheritance)? Provisional rule in section 4: it passes with the household; if nobody is left, the estate is frozen (its coins still count towards the fixed total).
 - Should a household that runs out of firewood suffer more than a counter? (v0 records cold days only.)
-- **Balance (milestone 1 is not done):** across seeds 1-8 the town keeps between 20 and 58 of 60 people alive for 100 days, so test 1 is not met yet. Collapses come from famine spirals: a food or tool shortage, merchants leaving the trade so nobody imports, and the treasury holding coins out of circulation.
+- **Balance:** milestone 1 now holds: no starvation in 100 days on any of 600 seeds (`npx vite-node scripts/sweep.ts 1 600`). Over 200 days, 1 seed in 150 loses people. Some towns end the run with no farmers or bakers at all, living on imports and raw food; whether that should be possible is open.
 
 ## 13. Rules for building with AI
 

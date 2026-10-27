@@ -22,27 +22,39 @@
   "householdNeeds": [
     { "good": "wood", "perHouseholdPerDay": 1, "stockDays": 2 }
   ],
+  "granary": {
+    "goods": ["wheat", "vegetables"],
+    "targetUnits": 150,
+    "buyBelow": 1.0,
+    "budgetShare": 0.3,
+    "startShare": 1
+  },
   "comfort": {
     "thresholdDays": 10,
     "spendShare": 0.03,
     "basket": { "wood": 1 }
+  },
+  "service": {
+    "wageMeals": 3,
+    "affordDays": 20
   },
   "startFoodDays": 4,
   "foodStockDays": 2,
   "daysUntilStarvation": 7,
   "producerVisitsPerDay": 4,
   "shopVisitsPerDay": 3,
-  "outputStockBatches": 2,
+  "outputStockBatches": 4,
   "startInputDays": 2,
   "inputStockDays": 2,
   "reserveDays": 3,
+  "charityShare": 0.25,
   "pricing": {
     "soldOutStep": 1.08,
     "missedDemandStep": 1.06,
     "overstockStep": 0.94,
     "unsoldStep": 0.98,
     "minMargin": 1.05,
-    "maxMargin": 4,
+    "maxMargin": 20,
     "newStockMargin": 1.2,
     "merchantBuyBelow": 0.85,
     "merchantRiskShare": 0.5,
@@ -53,13 +65,14 @@
     "startTreasury": 300,
     "startChurch": 100,
     "marketTax": 0.08,
-    "hearthTax": 2,
+    "hearthTaxShare": 0.02,
     "hearthTaxAboveDays": 10,
+    "treasuryKeepDays": 14,
     "guardWage": 3,
     "priestWage": 3,
     "guardShare": 0.6,
     "wageBudgetShare": 0.7,
-    "churchGrantShare": 0.05,
+    "churchGrantShare": 0.2,
     "reviewEveryDays": 7,
     "maxHiresPerReview": 1
   },
@@ -70,12 +83,14 @@
     "dailyDrift": 0.03,
     "roadCost": 0.25,
     "importMargin": 0.15,
-    "merchantFee": 0.15
+    "merchantFee": 0.15,
+    "moneyElasticity": 0.5
   },
   "jobChange": {
-    "everyDays": 7,
-    "chance": 0.15,
+    "everyDays": 3,
+    "chance": 0.5,
     "minGain": 5,
-    "quitWhenSavedDays": 60
+    "quitWhenSavedDays": 60,
+    "acquaintances": 3
   }
 }

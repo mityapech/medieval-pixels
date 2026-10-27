@@ -33,7 +33,7 @@ describe('total coins never change', () => {
     for (const a of allAccounts(world)) expect(a.coins).toBeGreaterThanOrEqual(0);
   });
 
-  it('holds while trade with neighbouring towns, taxes, wages, alms and inheritance all happen', () => {
+  it('holds while trade with neighbouring towns, taxes, wages, alms, service and the granary all happen', () => {
     const memos = new Set<string>();
     for (const seed of SEEDS) {
       const world = createWorld(data, seed);
@@ -43,7 +43,7 @@ describe('total coins never change', () => {
       for (const e of world.ledger) memos.add(e.memo.split(' ')[0]!);
     }
     // Make sure the test actually exercised every kind of payment, not just market sales.
-    for (const kind of ['import', 'market', 'hearth', 'alms', 'inheritance', 'household']) expect(memos).toContain(kind);
+    for (const kind of ['import', 'export', 'market', 'hearth', 'alms', 'servant', 'granary', 'household', 'kin']) expect(memos).toContain(kind);
   });
 
   it('is unaffected by which day the run stops on', () => {

@@ -67,7 +67,24 @@ export interface TownConfig {
   startCoins: { child: number; adult: number; elder: number };
   householdNeeds: HouseholdNeed[];
   /** Well-off households spend part of their savings above thresholdDays of living costs on comforts, used up the same day. */
+  granary: {
+    goods: GoodId[];
+    /** Units of each good the authority tries to keep in store. */
+    targetUnits: number;
+    /** Buys only when a producer asks no more than basePrice times this. */
+    buyBelow: number;
+    /** Share of the treasury above its wage reserve it will spend on stores in a day. */
+    budgetShare: number;
+    /** Share of targetUnits already in store at the start. */
+    startShare: number;
+  };
   comfort: { thresholdDays: number; spendShare: number; basket: Record<GoodId, number> };
+  service: {
+    /** A servant's daily wage, in meals at the current cheapest food price. */
+    wageMeals: number;
+    /** A household takes on another servant only if its spare savings cover this many days of the wage. */
+    affordDays: number;
+  };
   startFoodDays: number;
   foodStockDays: number;
   daysUntilStarvation: number;
@@ -80,6 +97,8 @@ export interface TownConfig {
   inputStockDays: number;
   /** Days of household food a worker keeps in coins before spending on business. */
   reserveDays: number;
+  /** Share of their savings above comfort a well-off person will give at most to one hungry household in a day. */
+  charityShare: number;
   pricing: {
     soldOutStep: number;
     missedDemandStep: number;
@@ -93,14 +112,23 @@ export interface TownConfig {
     merchantMinMargin: number;
     memoryWeight: number;
   };
-  jobChange: { everyDays: number; chance: number; minGain: number; quitWhenSavedDays: number };
+  jobChange: {
+    everyDays: number;
+    chance: number;
+    minGain: number;
+    quitWhenSavedDays: number;
+    /** How many practitioners of each trade a person knows of when judging what it earns. */
+    acquaintances: number;
+  };
   authority: {
     startTreasury: number;
     startChurch: number;
     marketTax: number;
-    /** Coins per day from each household whose purse covers hearthTaxAboveDays of food. */
-    hearthTax: number;
+    /** Share per day of a household's savings above hearthTaxAboveDays of food. */
+    hearthTaxShare: number;
     hearthTaxAboveDays: number;
+    /** Days of wages the treasury keeps before passing surplus to the church. */
+    treasuryKeepDays: number;
     guardWage: number;
     priestWage: number;
     /** Share of affordable posts given to guards (the rest to priests). */
@@ -125,6 +153,8 @@ export interface TownConfig {
     importMargin: number;
     /** A merchant's fee on import orders, as a share of the import cost. */
     merchantFee: number;
+    /** How strongly a neighbour's prices follow its coins: price level = (coins / startCoins) ^ this. */
+    moneyElasticity: number;
   };
 }
 
@@ -154,6 +184,12 @@ export interface Lot {
   durability?: number;
 }
 
+/** Anything that can hold goods: a citizen, or the town granary. */
+export interface Holder {
+  name: string;
+  inventory: Lot[];
+}
+
 /** Anything that can hold coins: a citizen, the treasury, the church, a neighbouring town. */
 export interface Account {
   /** Unique across the world, e.g. "citizen:12", "treasury", "town:Ashford". */
@@ -162,17 +198,19 @@ export interface Account {
   coins: number;
 }
 
-export type Office = 'guard' | 'priest';
+export type Office = 'guard' | 'priest' | 'servant';
 
-export interface Citizen extends Account {
+export interface Citizen extends Account, Holder {
   id: CitizenId;
   /** Fixed in v0 (aging is out of scope). */
   age: number;
   traits: string[];
   /** null for anyone not in a trade: children, elders, unemployed adults, and office holders. */
   trade: Trade | null;
-  /** A paid post with the town authority. */
+  /** A paid post: guard or priest with the town authority, or servant in a household. */
   office: Office | null;
+  /** For servants: the household that employs them. */
+  employerHousehold: HouseholdId | null;
   householdId: HouseholdId;
   spouseId: CitizenId | null;
   parentIds: CitizenId[];
@@ -259,10 +297,13 @@ export interface DayReport {
   church: number;
   guards: number;
   priests: number;
+  servants: number;
   /** Working-age adults with neither a trade nor a post. */
   unemployed: number;
   workingAge: number;
   alms: number;
+  /** Units held in the public granary. */
+  granary: number;
   imports: number;
   exports: number;
   eventsStarted: string[];
@@ -284,6 +325,8 @@ export interface World {
   citizens: Citizen[];
   households: Household[];
   treasury: Account;
+  /** The town's public store of grain and vegetables, bought cheaply in good times and sold at cost in a shortage. */
+  granary: Holder;
   church: Account;
   neighbours: Neighbour[];
   events: ActiveEvent[];

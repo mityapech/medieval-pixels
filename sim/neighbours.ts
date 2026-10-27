@@ -17,6 +17,18 @@ export function driftNeighbourPrices(world: World, data: GameData): void {
   }
 }
 
+/**
+ * A neighbour's price level follows its money: a town that has taken in coins gets dearer, one that has paid
+ * them out gets cheaper (price-specie flow). This is what brings coins back to a town that imports too much.
+ */
+function priceLevel(data: GameData, n: Neighbour): number {
+  return Math.pow(Math.max(1, n.coins) / data.town.neighbours.startCoins, data.town.neighbours.moneyElasticity);
+}
+
+export function neighbourPrice(world: World, data: GameData, n: Neighbour, good: GoodId): number {
+  return n.prices[good]! * neighbourPriceMult(world, data, good) * priceLevel(data, n);
+}
+
 function road(world: World, data: GameData): number {
   return data.town.neighbours.roadCost * roadCostMult(world, data);
 }
@@ -25,7 +37,7 @@ function road(world: World, data: GameData): number {
 export function bestImport(world: World, data: GameData, good: GoodId): { from: Neighbour; unitCost: number } | undefined {
   let best: { from: Neighbour; unitCost: number } | undefined;
   for (const n of world.neighbours) {
-    const unitCost = Math.ceil(n.prices[good]! * neighbourPriceMult(world, data, good) * (1 + road(world, data)));
+    const unitCost = Math.ceil(neighbourPrice(world, data, n, good) * (1 + road(world, data)));
     if (!best || unitCost < best.unitCost) best = { from: n, unitCost };
   }
   return best;
@@ -35,7 +47,7 @@ export function bestImport(world: World, data: GameData, good: GoodId): { from: 
 export function bestExport(world: World, data: GameData, good: GoodId, qty: number): { to: Neighbour; unitPrice: number } | undefined {
   let best: { to: Neighbour; unitPrice: number } | undefined;
   for (const n of world.neighbours) {
-    const unitPrice = Math.floor(n.prices[good]! * neighbourPriceMult(world, data, good) * (1 - road(world, data)));
+    const unitPrice = Math.floor(neighbourPrice(world, data, n, good) * (1 - road(world, data)));
     if (unitPrice <= 0 || n.coins < unitPrice * qty) continue;
     if (!best || unitPrice > best.unitPrice) best = { to: n, unitPrice };
   }
