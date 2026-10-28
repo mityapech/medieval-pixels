@@ -9,7 +9,7 @@ import { askPrice } from './market';
 import { specialityOf } from './specialities';
 import type { Advert, Citizen, World } from './types';
 
-/** One visible step of someone's day. where: work, home, market, church, granary, docks, gate, wall, canal, play, employer, lake, site. */
+/** One visible step of someone's day. where: work, home, market, townhall, church, granary, docks, gate, wall, canal, play, employer, lake, site. */
 export interface Task {
   task: string;
   where: string;

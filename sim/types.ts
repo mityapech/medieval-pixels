@@ -300,7 +300,7 @@ export interface Account {
   coins: number;
 }
 
-export type Office = 'guard' | 'priest' | 'teacher' | 'healer' | 'servant';
+export type Office = 'guard' | 'priest' | 'teacher' | 'healer' | 'servant' | 'mayor';
 
 export interface Citizen extends Account, Holder {
   id: CitizenId;

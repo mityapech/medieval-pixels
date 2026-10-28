@@ -18,7 +18,7 @@ day of work to do. Farmers plough and harvest, bakers knead and bake, fishermen 
 repair houses, children play by the canal, and in the evening the tavern fills up. Prices rise and fall with
 supply and demand, a few rich burghers own most of the property and everyone else rents, and the town grows or
 struggles over the years. Every two years the town elects a mayor, whose views change taxes, jobs, trade and
-welfare.
+welfare. The mayor gives up their trade for the post and works at the Town Hall (look for the gold crown).
 
 **One town, played slowly.** When you open the game you get a title screen over a slow timelapse of your town.
 Press **Play** to found your town (give it a name) and it is saved in your browser: next time, **Continue** picks up
@@ -33,7 +33,8 @@ the same day. Founding a new town replaces the old one, so stay with the one you
 | **Speed** | **Pause**, **1×**, **10×**, **60×** at the top (at 1×, a day lasts about 4 minutes) |
 | **Skip to tomorrow** | **Step one day** |
 | **See who someone is** | Click a person: their family, job, coins, worries and today's work |
-| **See a building** | Click it: who owns it and what it is |
+| **See a building** | Click it: who owns it and what it is. Click the **Town Hall** for the mayor's office |
+| **Who owns what** | Click a landowner: every building they hold, who lives or works there, what each brings in a day and is worth |
 | **Where did this come from?** | In a person's details, click something they own to trace who made it |
 | **Everyone in town** | **People** |
 | **What's happening** | Bottom left: **Overheard nearby** (conversations near you), **Town news**, **Market notices** |

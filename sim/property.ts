@@ -28,7 +28,7 @@ const B = businessesJson as unknown as {
 };
 
 /** The town's own buildings, which are not for sale. */
-const TOWN = new Set(['market', 'church', 'granary', 'school', 'infirmary']);
+const TOWN = new Set(['market', 'townhall', 'church', 'granary', 'school', 'infirmary']);
 /** Trades whose sites take employees for a wage; the rest are run by tradespeople who pay the owner a share. */
 const EMPLOYING: ReadonlySet<Trade> = new Set(['farmer', 'lumberjack', 'miner', 'forager', 'fisherman']);
 /** Businesses a burgher may open a new site for. */

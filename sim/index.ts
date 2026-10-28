@@ -1,6 +1,6 @@
 // Public entry point for the simulation. Rendering and input code must only use what is exported here.
 export { loadData, type GameData } from './data';
-export { createWorld, ensureWorkTraits } from './world';
+export { createWorld, upgradeTown } from './world';
 export { tick, runDays } from './tick';
 export { transfer, totalCoins } from './coins';
 export { traceBatch } from './trace';
@@ -13,4 +13,5 @@ export { householdOf, kinOf, livingMembers } from './family';
 export { stockOf } from './inventory';
 export type * from './types';
 export { compact, loadWorld, saveWorld } from './save';
+export { valueOf, workplaceOf } from './property';
 export { canMarry, divorce, makeHead, marry, moveToFamily, renameCitizen, renameFamily, setCoins } from './god';

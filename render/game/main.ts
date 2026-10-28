@@ -4,7 +4,7 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
-  cheapestMeal, talent, compact, ensureWorkTraits, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
+  cheapestMeal, talent, compact, upgradeTown, valueOf, workplaceOf, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
   type Conversation, type DayReport, type Doctrine,
 } from '../../sim/index';
 import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
@@ -24,7 +24,7 @@ const saved = playing ? savedTown() : undefined;
 const backdrop = saved ? undefined : backdropTown(data);
 const world = saved?.world ?? backdrop!.world;
 const townName = saved?.name ?? backdrop!.name;
-ensureWorkTraits(world, data);
+upgradeTown(world, data);
 const onTitle = !saved;
 const places = layoutTown(world);
 const life = new Life(world, data, places);
@@ -54,13 +54,13 @@ const SPRITES = spritesJson as { places: Record<string, string>; people: Record<
 const PLACEHOLDER: Record<string, number> = {
   market: 0xcbb98f, church: 0x9c97ab, granary: 0xa77e48, fields: 0xc2a24a, woods: 0x7a5a2c,
   bakery: 0xb9733e, smithy: 0x5f5d58, merchants: 0xa98756, house: 0x8a6440, townhouse: 0x6e4a2e,
-  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e, site: 0xc9b48a, tavern: 0x9a5b2e, school: 0xc7b26a, infirmary: 0xd8d0c4,
+  quarry: 0x8f8a80, wildwood: 0x7d6a34, jetty: 0x6e4e2c, yard: 0xb39a6e, site: 0xc9b48a, tavern: 0x9a5b2e, school: 0xc7b26a, townhall: 0xb8955a, infirmary: 0xd8d0c4,
 };
 // Occupation colours: the same fixed order as the occupations chart on the stats page.
 const JOB_COLOUR: Record<string, number> = {
   farmer: 0x2a78d6, baker: 0xeb6834, lumberjack: 0x1baf7a, miner: 0x7a6a5a, forager: 0x8cbf3f, fisherman: 0x3fb0c9,
   builder: 0xc9853f, innkeeper: 0xa0522d, teacher: 0x4a7fb5, healer: 0xd94f70, blacksmith: 0xeda100,
-  merchant: 0xe87ba4, guard: 0x008300, priest: 0x6250d6, servant: 0xe34948,
+  merchant: 0xe87ba4, guard: 0x008300, priest: 0x6250d6, servant: 0xe34948, mayor: 0xd4af37,
 };
 const IDLE_COLOUR = 0xf0efec;
 
@@ -242,6 +242,12 @@ function drawWalker(w: Walker, progress?: number): void {
   if (party) {
     w.g.rect(size / 2, -size / 2 - 13, 1.5, 13 + size / 2).fill(0x3b2a18);
     w.g.rect(size / 2 + 1.5, -size / 2 - 13, 10, 6).fill(DOCTRINE_COLOUR[party]).stroke({ width: 1, color: 0x1a1a19 });
+  }
+  // The mayor wears a gold chain of office and a little crown.
+  if (w.c.office === 'mayor') {
+    w.g.rect(-size / 2, -size / 2, size, size).stroke({ width: 2, color: 0xffd447 });
+    w.g.poly([-5, -size / 2 - 3, -5, -size / 2 - 9, -2.5, -size / 2 - 6, 0, -size / 2 - 10, 2.5, -size / 2 - 6, 5, -size / 2 - 9, 5, -size / 2 - 3])
+      .fill(0xffd447).stroke({ width: 1, color: 0x6b4f00 });
   }
   if (selected === w.c.id) w.g.rect(-size / 2 - 3, -size / 2 - 3, size + 6, size + 6).stroke({ width: 2, color: 0xffffff });
   if (progress !== undefined) {
@@ -817,7 +823,7 @@ function inspectCitizen(c: Citizen): void {
     h('h3', c.name),
     facts([
       ['Age', `${c.age}`],
-      ['Work', job + (world.mayor?.id === c.id ? `; mayor (${doctrineName(world.mayor.doctrine)})` : '')],
+      ['Work', c.office === 'mayor' && world.mayor?.id === c.id ? `Mayor of ${townName || 'the town'} (${doctrineName(world.mayor.doctrine)}), at the Town Hall` : job],
       ['Traits', c.traits.map((id) => {
         const gifts = Object.entries(data.traits.get(id)?.talent ?? {}).filter(([, m]) => m > 1).map(([t]) => t);
         return gifts.length ? `${id} (gifted ${gifts.join(', ')})` : id;
@@ -837,6 +843,8 @@ function inspectCitizen(c: Citizen): void {
     for (const step of plan) ol.append(h('li', step.task));
     body.append(ol);
   }
+  const holdings = propertyOf(c);
+  if (holdings) body.append(holdings);
   const kin = kinOf(world, c);
   const dead = world.citizens.filter((k) => !k.alive && (k.id === c.spouseId || c.parentIds.includes(k.id) || k.parentIds.includes(c.id)));
   if (kin.length || dead.length) {
@@ -889,6 +897,48 @@ function inspectCitizen(c: Citizen): void {
   panel.hidden = false;
 }
 
+/**
+ * What someone owns: each building or site, who lives or works there, and what it brings in a day (rent and site
+ * fees, averaged over the last few days of payments), with what it is worth. Undefined for those who own nothing.
+ */
+function propertyOf(c: Citizen): HTMLElement | undefined {
+  const owned = Object.entries(world.property).filter(([, p]) => p.owner === c.id);
+  if (!owned.length) return undefined;
+  const days = Math.max(1, Math.min(3, world.day));
+  const recent = world.ledger.filter((e) => e.to === c.key && world.day - e.day < days);
+  const label = (key: string) => world.land.places.find((p) => p.key === key)?.label ?? key;
+  const rows = owned.map(([key, p]) => {
+    let memo: (m: string) => boolean;
+    let who: string;
+    if (key.startsWith('home:')) {
+      const hh = world.households[Number(key.slice(5))];
+      const living = hh ? livingMembers(world, hh) : [];
+      memo = (m) => !!hh && m === `rent for the ${hh.family} house`;
+      who = !living.length ? 'standing empty' : living.some((m) => m.id === c.id) ? 'their own home' : `let to the ${hh!.family} family at ${p.rent} a day`;
+    } else {
+      const workers = world.citizens.filter((x) => x.alive && workplaceOf(x) === key && x.id !== c.id);
+      memo = (m) => m === `site fee at ${key}`;
+      who = workers.length ? `${workers.length} at work here` : 'nobody working here';
+    }
+    const perDay = Math.round(recent.filter((e) => memo(e.memo)).reduce((s, e) => s + e.amount, 0) / days);
+    return { name: label(key), who, perDay, worth: valueOf(world, data, key) };
+  }).sort((a, b) => b.perDay - a.perDay || b.worth - a.worth);
+  const total = rows.reduce((s, r) => s + r.perDay, 0);
+  const worth = rows.reduce((s, r) => s + r.worth, 0);
+  const box = h('div', undefined, 'holdings');
+  box.append(h('h4', `Property: ${rows.length} held, about ${total} coins a day, worth about ${worth}`));
+  const table = h('table');
+  for (const r of rows) {
+    const tr = h('tr');
+    const name = h('td');
+    name.append(h('b', r.name), h('div', r.who, 'muted'));
+    tr.append(name, h('td', r.perDay ? `+${r.perDay}/day` : '–', r.perDay ? 'change-up' : 'muted'), h('td', `≈${r.worth}`, 'muted'));
+    table.append(tr);
+  }
+  box.append(table);
+  return box;
+}
+
 /** How well someone suits their trade, from their traits. */
 function fit(m: number): string {
   return m >= 1.5 ? `a natural (+${Math.round((m - 1) * 100)}%)` : m > 1 ? `gifted (+${Math.round((m - 1) * 100)}%)` : m < 1 ? `poorly suited (${Math.round((m - 1) * 100)}%)` : 'ordinary';
@@ -935,6 +985,7 @@ function showPeople(): void {
 document.getElementById('people')!.addEventListener('click', showPeople);
 
 function inspectPlace(p: Place): void {
+  if (p.key === 'townhall' && !onTitle) { panel.hidden = true; hallPanel.hidden = false; refreshHall(); return; }
   selected = null;
   const r = world.reports.at(-1);
   body.replaceChildren(h('h3', p.label));

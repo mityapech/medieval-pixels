@@ -2,7 +2,7 @@
   "_comment": "Town politics. A mayor is elected every termDays; their doctrine sets the town's policy while in office. Policy values replace the defaults in town.json (authority, neighbours, property). posts multiplies how many of each public post the town wants; tariff is an extra share of the price paid to the treasury on every import; exportFood false stops food leaving town; rentCapMeals caps rent per tile of floor (null: no cap); plotPriceFactor and roadCostFactor scale the price of building plots and the cost of the road to other towns; granaryFactor scales how much grain the granary keeps.",
   "termDays": 60,
   "campaignDays": 6,
-  "mayorStipendMeals": 2,
+  "mayorStipendMeals": 4,
   "doctrines": {
     "liberal": {
       "name": "Liberal Reformer",

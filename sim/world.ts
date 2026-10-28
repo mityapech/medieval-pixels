@@ -4,7 +4,7 @@ import { totalCoins } from './coins';
 import { HEAVENS_PURSE } from './god';
 import { initialBuildings } from './construction';
 import { initialProperty } from './property';
-import { generateLand } from './land';
+import { findHousePlot, generateLand } from './land';
 import type { GameData } from './data';
 import { isWorkingAge } from './family';
 import { addLot, makeBatch } from './inventory';
@@ -245,8 +245,21 @@ export function newCitizen(
   return c;
 }
 
-/** A town saved before work traits existed: everyone without one is given one (chosen by their id, not the dice). */
-export function ensureWorkTraits(world: World, data: GameData): void {
+/**
+ * Brings a town saved by an older version up to date: a Town Hall for the mayor to work in, the mayor holding the
+ * post, and a work trait for everyone (chosen by their id, not the dice, so the town's future is not disturbed).
+ */
+export function upgradeTown(world: World, data: GameData): void {
+  if (!world.land.places.some((p) => p.key === 'townhall')) {
+    const at = findHousePlot(world, 4, 3);
+    if (at) {
+      world.land.places.push({ key: 'townhall', label: 'Town Hall', sprite: 'townhall', x: at.x, y: at.y, w: 4, h: 3 });
+      world.property.townhall = { owner: null, kind: 'town', deeds: [{ day: world.day, from: null, to: null, price: 0 }], rent: 0, arrears: 0 };
+      world.buildings.townhall = { condition: 100 };
+    }
+  }
+  const mayor = world.mayor ? world.citizens[world.mayor.id] : undefined;
+  if (mayor?.alive && mayor.office !== 'mayor') { mayor.trade = null; mayor.speciality = undefined; mayor.workplace = undefined; mayor.employer = undefined; mayor.office = 'mayor'; }
   const work = [...data.traits.values()].filter((t) => t.kind === 'work').map((t) => t.id);
   for (const c of world.citizens) {
     c.traits = c.traits.filter((t) => data.traits.has(t));

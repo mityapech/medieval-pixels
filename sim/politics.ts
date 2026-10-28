@@ -5,7 +5,7 @@ import politicsJson from '../data/politics.json';
 import { cheapestMeal } from './agent';
 import { transfer } from './coins';
 import type { GameData } from './data';
-import { householdOf, isAdult, livingMembers } from './family';
+import { householdOf, isAdult, livingMembers, takeUpTrade } from './family';
 import { remember } from './memory';
 import { random } from './rng';
 import type { Citizen, Doctrine, Policy, World } from './types';
@@ -187,6 +187,15 @@ function holdElection(world: World, data: GameData): Election | undefined {
     remember(world, v, 'voted', { name: best.c.name.split(' ')[0]!, doctrine: doctrineName(best.doctrine) });
   }
   const win = [...candidates].sort((a, b) => votes[b.c.id]! - votes[a.c.id]!)[0]!;
+  // Being mayor is a post: the old mayor goes back to finding work, the new one leaves their trade for the Town Hall.
+  const old = world.mayor ? world.citizens[world.mayor.id]! : undefined;
+  if (old && old !== win.c && old.office === 'mayor') old.office = null;
+  if (win.c.office !== 'mayor') {
+    takeUpTrade(data, win.c, null);
+    win.c.office = 'mayor';
+    win.c.employerHousehold = null;
+    win.c.employer = undefined;
+  }
   world.mayor = { id: win.c.id, doctrine: win.doctrine, since: world.day, termEnds: world.day + P.termDays };
   world.elections.push({ day: world.day, mayor: win.c.id, doctrine: win.doctrine });
   remember(world, win.c, 'elected_mayor', { doctrine: doctrineName(win.doctrine) });

@@ -126,6 +126,7 @@ export function reconsiderWork(world: World, data: GameData): JobChange[] {
     if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult') * stuck) continue;
     const typical = knownEarnings(world, data, c);
     // Servants and other post-holders go back to a trade when one clearly pays better than their wage.
+    if (c.office === 'mayor') continue; // the mayor serves out their term
     if (c.office) {
       const to = bestAffordable(world, data, c, typical);
       const mine = net(c);

@@ -167,3 +167,9 @@ body.on-title .bar, body.on-title .panel, body.on-title .help { display: none; }
 .power-error { margin: 4px 0 0; color: var(--critical); font-size: 12px; min-height: 0; }
 .power-error:empty { display: none; }
 #news li.miracle { border-left: 3px solid #c9a227; padding-left: 6px; }
+
+/* What someone owns, in the person inspector */
+.holdings table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.holdings td { padding: 3px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.holdings td:not(:first-child) { text-align: right; white-space: nowrap; }
+.holdings td div { font-size: 11px; }

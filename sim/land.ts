@@ -178,6 +178,7 @@ export function generateLand(world: World, data: GameData): Land {
   const my = market.y + market.h / 2;
   const near = (r: number) => (x: number, y: number) => -Math.abs(dist(x, y, mx, my) - r);
   const shared: [string, string, string, number, number, (x: number, y: number) => number][] = [
+    ['townhall', 'Town Hall', 'townhall', 4, 3, near(5)],
     ['church', 'Church', 'church', 4, 5, near(6)],
     ['work:merchant', "Merchants' row", 'merchants', 6, 2, near(5)],
     ['granary', 'Granary', 'granary', 3, 3, near(8)],

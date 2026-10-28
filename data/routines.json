@@ -618,6 +618,28 @@
         "task": "Changing dressings",
         "where": "infirmary"
       }
+    ],
+    "mayor": [
+      {
+        "task": "Hearing petitions",
+        "where": "townhall"
+      },
+      {
+        "task": "Signing decrees",
+        "where": "townhall"
+      },
+      {
+        "task": "Inspecting the market",
+        "where": "market"
+      },
+      {
+        "task": "Meeting the council",
+        "where": "townhall"
+      },
+      {
+        "task": "Going over the town's accounts",
+        "where": "townhall"
+      }
     ]
   },
   "idle": [
