@@ -170,7 +170,7 @@ export function propertyDay(world: World, data: GameData, tally: DayTally, event
     }
   }
 
-  const sales = landMarket(world, data);
+  const sales = [...landMarket(world, data), ...(world.day % cfg.reviewEveryDays === 3 ? offers(world, data) : [])];
   if (world.day % cfg.reviewEveryDays === 0) {
     events.push(...adjustRents(world, data), ...develop(world, data), ...hire(world, data));
   }
@@ -211,6 +211,46 @@ function landMarket(world: World, data: GameData): string[] {
     p.deeds.push({ day: world.day, from: owner.id, to: buyer.id, price });
     p.owner = buyer.id;
     p.forSale = undefined;
+    const label = world.land.places.find((q) => q.key === key)?.label ?? key;
+    sales.push(`${buyer.name} bought ${label} from ${owner.name} for ${price} coins`);
+    remember(world, buyer, 'bought_property', { place: label });
+  }
+  return sales;
+}
+
+/**
+ * Weekly: households with money to spare make offers on property that would pay them back well. The more of them
+ * there are, the more they offer (competition for scarce land). An owner sells when the best offer clearly beats
+ * what the property is worth to them; their own home is not for sale.
+ */
+function offers(world: World, data: GameData): string[] {
+  const cfg = data.town.property;
+  const sales: string[] = [];
+  const investors = world.households
+    .map((h) => ({ h, spare: Math.floor(purseOf(world, h) - cfg.investAboveDays * dailyCost(world, data, h)), bought: false }))
+    .filter((x) => x.spare > 0 && livingMembers(world, x.h).length);
+  if (!investors.length) return sales;
+  const competition = 1 + Math.min(0.5, investors.length * 0.05);
+  for (const [key, p] of Object.entries(world.property)) {
+    if (p.owner === null || p.kind === 'town' || p.forSale) continue;
+    const owner = world.citizens[p.owner]!;
+    if (key === `home:${owner.householdId}`) continue;
+    const value = valueOf(world, data, key);
+    // Each investor bids what it is worth to them, pushed up by how many are after property, up to what they can spare.
+    const bids = investors
+      .filter((x) => x.h.id !== owner.householdId && !x.bought)
+      .map((x) => ({ ...x, bid: Math.min(x.spare, Math.round(value * competition * (0.85 + random(world) * 0.3))) }))
+      .sort((a, b) => b.bid - a.bid);
+    const top = bids[0];
+    if (!top || top.bid < value * cfg.sellAbove) continue;
+    const price = bids[1] ? Math.max(Math.round(value * cfg.sellAbove), Math.min(top.bid, bids[1].bid + 1)) : top.bid;
+    const buyer = [...livingMembers(world, top.h)].sort((x, y) => y.coins - x.coins)[0]!;
+    if (buyer.coins < price) continue;
+    transfer(world, buyer, owner, price, `buying ${key}`);
+    p.deeds.push({ day: world.day, from: owner.id, to: buyer.id, price });
+    p.owner = buyer.id;
+    top.spare -= price;
+    top.bought = true; // one purchase a week each
     const label = world.land.places.find((q) => q.key === key)?.label ?? key;
     sales.push(`${buyer.name} bought ${label} from ${owner.name} for ${price} coins`);
     remember(world, buyer, 'bought_property', { place: label });

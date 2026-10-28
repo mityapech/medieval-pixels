@@ -79,7 +79,9 @@
     "developAboveDays": 60,
     "wageMeals": 2.5,
     "rentStep": 1.05,
-    "plotPriceMeals": 30
+    "plotPriceMeals": 30,
+    "sellAbove": 1.15,
+    "investAboveDays": 50
   },
   "construction": {
     "materials": { "wood": 2, "stone": 2, "nails": 4 },

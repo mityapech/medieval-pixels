@@ -129,6 +129,10 @@ export interface TownConfig {
     rentStep: number;
     /** The town sells an empty plot for this many meals. */
     plotPriceMeals: number;
+    /** An owner accepts an unasked-for offer at this many times what the property is worth to them. */
+    sellAbove: number;
+    /** Households with more than this many days of living costs to spare make offers on property. */
+    investAboveDays: number;
   };
   /** Buildings wear down each day; their owners pay builders to repair them with these materials. */
   construction: {

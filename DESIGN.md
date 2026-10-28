@@ -106,7 +106,7 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 | Forager | berries, mushrooms, herbs from the wildwood | nothing | households, Merchant |
 | Fisherman | fish, rowing out from the docks before dawn | a boat | households, Merchant |
 | Builder | repairs and new buildings | wood, stone, nails and fittings, bought per job | building owners and the treasury |
-| Blacksmith | iron ingots, tools, nails and fittings | iron ore, wood (fuel) | Farmer, Laborer, construction |
+| Blacksmith | iron ingots, tools, nails and fittings | iron ore, wood (fuel) | Farmer, Lumberjack, Miner, builders |
 | Merchant | nothing (only trades) | coins, carrying capacity | anyone |
 
 ### Dependencies
@@ -167,7 +167,7 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 - If someone has already gone hungry, the comfortable give **alms** directly, as a religious duty.
 - **Domestic service** (the first form of hiring): households with savings well above comfort take on a servant (a second only for a household of six or more) from idle adults in poorer households, and pay a daily wage worth a few meals. Service never pulls people out of a productive trade. A household that can no longer pay lets the servant go.
 - The **militia** protects the roads and the town: the more guards, the smaller the damage from bandits and other troubles.
-- Unemployment is allowed and reported. It is kept in check by the same rules, not by force: struggling households send adults to work, laborer needs no money to start, and paid posts absorb some idle adults.
+- Unemployment is allowed and reported. It is kept in check by the same rules, not by force: struggling households send adults to work, lumberjacking and foraging need no money to start, and paid posts absorb some idle adults.
 
 ## 7b. Random events
 
@@ -176,33 +176,48 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 
 ## 8. Land, buildings and rent
 
-### Plots
+Built in `sim/property.ts` (with `sim/construction.ts` and `sim/land.ts`). Settings are under `property` in `data/town.json`.
 
-- The map is a grid of plots. Each plot has: type (farmland, forest, quarry, town lot), location, owner (a person or business), and optionally a building.
-- Land decides production: farmers need farmland, laborers need forest or quarry plots. Town lots near the market are worth more.
-- Each plot keeps a **deed history** (every past owner, price and date).
+### Plots and owners
+
+- Every building and site on the map is a property with exactly one owner and a **deed history**: the founding grant, then every sale with seller, buyer, price and day.
+- The town keeps only its common buildings: the market square, church, granary, school and infirmary. Every home, business and work site (fields, woods, quarry, wildwood, fishing jetty, bakery, smithy, tavern, builders' yard, merchants' row) belongs to a citizen.
+- Land decides production: farmers work fields, lumberjacks the woods, miners the quarry, foragers the wildwood, fishermen from the jetty. Town lots near the market and canal are where the well-off live.
+
+### Burghers: who owns what
+
+- Owning property on a large scale is for the few. At the founding, the richest households (about 8% of households, which is 2 to 3% of people) are **burghers**: they own the businesses and most houses. The next richest (about 15% of households) own the house they live in. Everyone else rents.
+- Over time the share of people owning more than their own home stays within 1 to 5%: buying property needs savings far beyond most households' means.
+
+### Rent, site fees and wages
+
+- Tenants pay their landlord rent every day, set by the size of the house and the price of food. A household that cannot pay runs up arrears; after a while the landlord lowers the rent. Landlords raise rents while couples are waiting for houses, and lower them on houses that stand empty.
+- Tradespeople pay the owner of the site they work at a share (10%) of the day's sales.
+- Owners of farms, woods, quarries, wildwood and fisheries hire employees for a daily wage when a day's output is clearly worth more than the wage. What an employee makes belongs to the employer, who sells it (the batch still records who made it). An employer who cannot pay lets them go.
 
 ### Buying and selling
 
-- Anyone (NPC or player) can list a plot or building for sale, and anyone can make an offer.
-- Price comes from location, fertility or resources, buildings on it, and demand.
-- At the start, plots are distributed among NPCs. Some land can be kept by the town.
+- A property is valued at about 60 days of what it earns (rent for a house; site fees and output for a business).
+- Owners in trouble (short of money, or dead with no one to inherit) put property up for sale; the asking price falls each day it goes unsold. Wealthy households with plenty to spare bid; with rival bidders the price is bid up to just above the second best offer.
+- Each week, households with savings well beyond their needs also make unasked-for offers on property that would pay them back. The more such investors there are, the more they offer. An owner sells when an offer clearly beats what the property is worth to them (by 15%); nobody sells the home they live in this way. Each investor buys at most one property a week.
+
+### Development: building as an investment
+
+- A burgher with money to spare beyond 60 days of living costs invests: a **house to let** when couples are waiting for homes and none stands empty, otherwise a **new business** (bakery, tavern, smithy or farm) in the trade doing best. They buy the plot from the town and pay builders day by day, materials plus labour, until it is finished.
+- A new business is **named and specialised** by its owner (from `data/businesses.json`): "Vane & Sons Bakehouse, known for pies", "The Golden Hart, an ale house". The speciality makes its recipe more attractive to those who work there. A tradesperson of that trade moves to work at the new site.
 
 ### Buildings
 
-- Types: houses, farmhouses, shops, workshops (smithy, bakery), storehouses.
-- Built by laborers from wood, stone and nails. Construction takes time.
-- Buildings wear down and need repair, which creates steady demand for materials and labor.
+- Buildings wear down every day; owners pay builders to repair them (the treasury for the town's buildings). Poor households let their homes run down. Building and repair use wood, stone and nails.
 
-### Renting
+### Homes for new couples
 
-- Owners can rent buildings to other citizens or businesses, setting the rent. Rent is paid daily or weekly.
-- Tenants choose based on what they can afford and where they need to be (a baker wants a shop near customers).
-- Rules for unpaid rent and ending a lease will be defined in the first land milestone.
+- Newly married couples rent: they move into an empty house to let, or live apart with family until one is free. Burghers build houses to let when couples are waiting.
 
-### Preventing hoarding
+### Still open
 
-- If one person starts buying everything, add a small upkeep cost or tax per plot. Add this after the basics work, if needed.
+- Eviction for long arrears, leases, and the player owning property (the player milestone).
+- A tax or upkeep per property if one burgher starts buying everything.
 
 ## 9. The player
 
@@ -215,12 +230,13 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 1. **Goods economy**, no land yet. 60 NPCs, five trades, run from the terminal. *(Done.)*
 2. **Stats page.** `stats.html` runs the simulation in the browser and charts the town over time: goods produced, median wealth, population, prices, jobs, money flows. *(Done.)*
 3. **Citizen memories and dialogue.** *(Done, see section 4.)*
-4. **Functional UI and bare-bones graphics (debug view).** *(Done: `index.html`.)* A tile map of coloured squares and labels (sprite names from `data/sprites.json`, placeholders until art exists): houses, fields, woods and quarry, bakery, smithy, merchants' row, market, church, granary. People walk home, to work and to market through the day; the simulation advances a day at midnight (4 real minutes at 1x, with 10x and 60x). An observer, standing in for the player until milestone 6, walks with WASD or the arrow keys and overhears conversations within about 7 tiles, shown as speech bubbles and in a log. Clicking a person or building shows its record, and anything a person holds can be traced back through its makers. Controls: pause, speeds, step one day, seed and new town; a People list; a Town news feed (events, deaths, work changes, family events, trade, alms) beside the overheard log. Until the land milestone the renderer lays the town out itself; real plots replace that layout later.
-5. **Land and buildings.** Plots, deeds, construction, buying, selling and renting.
+4. **Functional UI and bare-bones graphics (debug view).** *(Done: `index.html`.)* A tile map of coloured squares and labels (sprite names from `data/sprites.json`, placeholders until art exists): houses, fields, woods and quarry, bakery, smithy, merchants' row, market, church, granary. People walk home, to work and to market through the day; the simulation advances a day at midnight (4 real minutes at 1x, with 10x and 60x). An observer, standing in for the player until milestone 6, walks with WASD or the arrow keys and overhears conversations within about 7 tiles, shown as speech bubbles and in a log. Clicking a person or building shows its record, and anything a person holds can be traced back through its makers. Controls: pause, speeds, step one day, seed and new town; a People list; a Town news feed (events, deaths, work changes, family events, trade, alms) beside the overheard log. The town's layout is generated by the simulation from the seed (section 3).
+5. **Land and buildings.** Plots, deeds, construction, buying, selling and renting, burghers, hiring and named businesses. *(Done: section 8.)*
 6. **Player as a citizen.**
-7. **Wealth and luxuries.** Luxury goods and their makers (silk, pottery, fine cooking), wealth tiers in what households buy and where they live (shabby rented rooms to large townhouses). Needs the land milestone for housing.
-8. **Polish and expansion.** Pixel art, more trades, laws, reputation, elections, fully simulated neighbouring towns.
-9. **Multiplayer**, if ever.
+7. **Progression.** A town that starts humble and visibly grows into prosperity, or declines into hardship, as the years pass.
+8. **Wealth and luxuries.** Luxury goods and their makers (silk, pottery, fine cooking), wealth tiers in what households buy and where they live (shabby rented rooms to large townhouses). Needs the land milestone for housing.
+9. **Polish and expansion.** Pixel art, more trades, laws, reputation, elections, fully simulated neighbouring towns.
+10. **Multiplayer**, if ever.
 
 ## 11. Tests
 
@@ -228,8 +244,8 @@ Everyone is self-employed at first: buy inputs, make goods, sell them. Hiring an
 2. Total coins never change (across people, treasury, church and neighbouring towns).
 3. Any loaf of bread traces back to its baker and the farmer who grew the wheat.
 4. Tools wear out and the blacksmith gets steady demand.
-5. (Land milestone) Every plot has exactly one owner at all times, and its deed history is complete.
-6. (Land milestone) Rent and sale payments move coins between people without creating or destroying any.
+5. (Land milestone, tested) Every plot has exactly one owner at all times, and its deed history is complete.
+6. (Land milestone, tested) Rent and sale payments move coins between people without creating or destroying any.
 
 ## 12. Open questions
 
