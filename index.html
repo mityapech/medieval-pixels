@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#8c8a4c" />
     <title>Medieval Pixels</title>
     <link rel="stylesheet" href="./render/game/game.css" />
     <link rel="stylesheet" href="./render/ledger/ledger.css" />
@@ -17,11 +18,13 @@
         <button type="button" data-speed="10">10×</button>
         <button type="button" data-speed="60">60×</button>
       </div>
-      <button type="button" id="step" class="plain" title="Jump to the next morning">Step one day</button>
+      <button type="button" id="step" class="plain" title="Jump to the next morning"><span class="long">Step one day</span><span class="short">+1 day</span></button>
       <button type="button" id="people" class="plain">People</button>
-      <button type="button" id="hall" class="plain">Town Hall</button>
+      <button type="button" id="hall" class="plain"><span class="long">Town Hall</span><span class="short">Hall</span></button>
       <button type="button" id="ledger" class="plain">Ledger</button>
+      <button type="button" id="town-toggle" class="plain phone-only" aria-pressed="false">Town</button>
       <span id="town-name" class="town-name"></span>
+      <span class="bar-break" aria-hidden="true"></span>
       <button type="button" id="menu" class="plain">Menu</button>
     </header>
     <aside class="panel money" aria-label="Market and money">
@@ -35,9 +38,9 @@
     </aside>
     <section class="panel overheard" aria-label="Town feed">
       <div class="tabs" role="tablist">
-        <button type="button" role="tab" id="tab-log" aria-selected="true">Overheard nearby</button>
-        <button type="button" role="tab" id="tab-news" aria-selected="false">Town news</button>
-        <button type="button" role="tab" id="tab-notices" aria-selected="false">Market notices</button>
+        <button type="button" role="tab" id="tab-log" aria-selected="true"><span class="long">Overheard nearby</span><span class="short">Nearby</span></button>
+        <button type="button" role="tab" id="tab-news" aria-selected="false"><span class="long">Town news</span><span class="short">News</span></button>
+        <button type="button" role="tab" id="tab-notices" aria-selected="false"><span class="long">Market notices</span><span class="short">Notices</span></button>
       </div>
       <ol id="log"></ol>
       <ol id="news" hidden></ol>
@@ -79,7 +82,8 @@
           <h2>How to play</h2>
           <p>Your town lives on its own: about a hundred people in families, each with a trade, a home and a day of work. You watch it grow, prosper or struggle over the years. Your town is saved in this browser and carries on where you left it.</p>
           <ul class="info-list">
-            <li><b>Look around</b> by dragging the map or with W A S D; <b>zoom</b> with the scroll wheel (or + and −). Zoom in close to hear what people say.</li>
+            <li><b>Look around</b> by dragging the map (or W A S D); <b>zoom</b> with the scroll wheel, + and −, or by pinching on a phone. Zoom in close to hear what people say.</li>
+            <li><b>On a phone:</b> tap anyone or any building; <b>Town</b> shows the market and money.</li>
             <li><b>Speed:</b> Pause, 1×, 10× or 60× at the top. Step one day skips to tomorrow.</li>
             <li><b>Click a person</b> to see their family, work, coins and today's tasks; <b>click a building</b> for its owner, rent and history.</li>
             <li><b>Town Hall:</b> the mayor, their doctrine and what they are changing. Elections come every two years, with campaigns at the market.</li>

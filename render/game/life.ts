@@ -110,7 +110,10 @@ export class Life {
     const jetty = places.get('work:fisherman');
     const jx = jetty ? jetty.x + jetty.w / 2 : mx;
     const jy = jetty ? jetty.y + jetty.h / 2 : my;
-    this.areas.set('lake', lake.filter((i) => Math.hypot((i % W) - jx, Math.floor(i / W) - jy) < 12));
+    // The water near the jetty; if the open lake is further off, the nearest of it (never the market square).
+    const far = (i: number) => Math.hypot((i % W) - jx, Math.floor(i / W) - jy);
+    const nearJetty = lake.filter((i) => far(i) < 12);
+    this.areas.set('lake', nearJetty.length ? nearJetty : [...lake].sort((a, b) => far(a) - far(b)).slice(0, 60));
   }
 
   /** Called each new day: everyone's plan for the day. */

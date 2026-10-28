@@ -1,7 +1,7 @@
 // Town View: the bare-bones graphical town. Placeholder squares and labels on a tile map, people walking
 // between home, work and the market through the day, conversations overheard when the observer is near,
 // and click-to-inspect records. The simulation advances one day at midnight.
-import { Application, Container, Graphics, Text } from 'pixi.js';
+import { Application, Circle, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
   cheapestMeal, talent, compact, upgradeTown, valueOf, workplaceOf, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
@@ -185,6 +185,8 @@ function addWalkers(): void {
     const g = new Graphics();
     g.eventMode = 'static';
     g.cursor = 'pointer';
+    // A generous target, so a fingertip can pick someone out.
+    g.hitArea = new Circle(0, 0, 13);
     g.on('pointertap', (e) => { e.stopPropagation(); if (!dragged) inspectCitizen(c); });
     peopleLayer.addChild(g);
     walkers.set(c.id, { c, g, x: home.x, y: home.y });
@@ -262,7 +264,7 @@ function drawWalker(w: Walker, progress?: number): void {
 // What is on screen when you are zoomed in close enough is what you hear: conversations, cries and task labels.
 const observer = centre(places.get('market')!);
 if (import.meta.env.DEV) (window as unknown as { townObserver: typeof observer }).townObserver = observer;
-let zoom = innerWidth >= 1600 ? 2 : 1.5;
+let zoom = innerWidth >= 1600 ? 2 : innerWidth < 720 ? 0.9 : 1.5;
 const ZOOM = { min: 0.4, max: 4 };
 /** Zoomed in this far, you can hear people and read what they are doing. */
 const CLOSE = 1.25;
@@ -281,31 +283,60 @@ function setZoom(z: number, at?: { x: number; y: number }): void {
 function inView(x: number, y: number, margin = 0): boolean {
   return Math.abs(x - observer.x) * zoom <= app.screen.width / 2 + margin && Math.abs(y - observer.y) * zoom <= app.screen.height / 2 + margin;
 }
-// Dragging the map moves the camera; a drag is not a click on whoever is under the pointer.
+// Dragging the map (mouse or one finger) moves the camera; two fingers pinch to zoom. A drag is not a click on
+// whoever is under the pointer.
 let drag: { x: number; y: number; ox: number; oy: number } | undefined;
+let pinch: { d: number; zoom: number } | undefined;
 let dragged = false;
+const touches = new Map<number, { x: number; y: number }>();
 app.canvas.style.cursor = 'grab';
+app.canvas.style.touchAction = 'none'; // the page itself must not scroll or zoom under a finger
+const canvasPoint = (x: number, y: number) => { const r = app.canvas.getBoundingClientRect(); return { x: x - r.left, y: y - r.top }; };
+function startDrag(): void {
+  const [p] = [...touches.values()];
+  drag = p ? { x: p.x, y: p.y, ox: observer.x, oy: observer.y } : undefined;
+}
 app.canvas.addEventListener('pointerdown', (e) => {
-  if (onTitle || e.button !== 0) return;
-  drag = { x: e.clientX, y: e.clientY, ox: observer.x, oy: observer.y };
-  dragged = false;
+  if (onTitle || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 1) { dragged = false; startDrag(); }
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()] as [{ x: number; y: number }, { x: number; y: number }];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), zoom };
+    drag = undefined;
+    dragged = true;
+  }
 });
 addEventListener('pointermove', (e) => {
+  if (!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && touches.size >= 2) {
+    const [a, b] = [...touches.values()] as [{ x: number; y: number }, { x: number; y: number }];
+    setZoom(pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch.d), canvasPoint((a.x + b.x) / 2, (a.y + b.y) / 2));
+    return;
+  }
   if (!drag) return;
   const dx = e.clientX - drag.x;
   const dy = e.clientY - drag.y;
-  if (!dragged && Math.hypot(dx, dy) < 5) return;
+  if (!dragged && Math.hypot(dx, dy) < (e.pointerType === 'mouse' ? 5 : 10)) return;
   dragged = true;
   app.canvas.style.cursor = 'grabbing';
   observer.x = drag.ox - dx / zoom;
   observer.y = drag.oy - dy / zoom;
 });
-addEventListener('pointerup', () => { drag = undefined; app.canvas.style.cursor = 'grab'; });
+function endPointer(e: PointerEvent): void {
+  touches.delete(e.pointerId);
+  if (touches.size < 2) pinch = undefined;
+  // Lifting one finger of a pinch carries on as a drag with the other.
+  if (touches.size === 1) startDrag(); else drag = undefined;
+  app.canvas.style.cursor = 'grab';
+}
+addEventListener('pointerup', endPointer);
+addEventListener('pointercancel', endPointer);
 app.canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   if (onTitle) return;
-  const r = app.canvas.getBoundingClientRect();
-  setZoom(zoom * Math.exp(-e.deltaY * 0.0015), { x: e.clientX - r.left, y: e.clientY - r.top });
+  setZoom(zoom * Math.exp(-e.deltaY * 0.0015), canvasPoint(e.clientX, e.clientY));
 }, { passive: false });
 
 // ---------- where people want to be ----------
@@ -755,6 +786,12 @@ document.getElementById('hall')!.addEventListener('click', () => {
   if (!hallPanel.hidden) { panel.hidden = true; selected = null; refreshHall(); }
 });
 document.getElementById('hall-close')!.addEventListener('click', () => { hallPanel.hidden = true; });
+// On a phone the market and money panel is shown on demand.
+const townToggle = document.getElementById('town-toggle')!;
+townToggle.addEventListener('click', () => {
+  const on = document.body.classList.toggle('show-money');
+  townToggle.setAttribute('aria-pressed', String(on));
+});
 
 // The Ledger: charts of this town's own history, refreshed each day while it is open.
 const ledgerPanel = document.getElementById('ledger-panel')!;

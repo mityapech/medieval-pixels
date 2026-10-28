@@ -4,7 +4,8 @@ A cozy medieval town simulator where you are given the tools to observe and infl
 
 ## ▶ Play it now: **[mityapech.github.io/medieval-pixels](https://mityapech.github.io/medieval-pixels/)**
 
-Nothing to install. It runs in your web browser (Chrome, Firefox, Edge or Safari) on a computer.
+Nothing to install. It runs in your web browser (Chrome, Firefox, Edge or Safari) on a computer, tablet or phone.
+On a phone: drag to move, pinch to zoom, tap anyone or any building, and **Town** for the market and money.
 
 > This is an early version: for now you watch the town live its life and walk among the people. Playing as a
 > citizen yourself comes later.
