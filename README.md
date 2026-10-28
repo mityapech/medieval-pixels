@@ -1,6 +1,6 @@
 # medieval-pixels
 
-A game where you are given the ultimate freedom in a super-open world set in a medieval pixel town.
+A cozy medieval town simulator where you are given the tools to observe and influence the rise (or fall) of a small medieval town with intricate economic mechanics.
 
 ## ▶ Play it now: **[mityapech.github.io/medieval-pixels](https://mityapech.github.io/medieval-pixels/)**
 
