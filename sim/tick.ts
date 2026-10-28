@@ -16,6 +16,8 @@ import { constructionDay } from './construction';
 import { growthDay, type GrowthNews } from './growth';
 import { healthDay, tavernEvening } from './health';
 import { propertyDay } from './property';
+import { politicsDay } from './politics';
+import { fortuneOf, improveHomes } from './progress';
 import { advertise } from './routine';
 import { hireServants, payServants } from './service';
 import type { Citizen, DayReport, World } from './types';
@@ -61,8 +63,17 @@ export function tick(world: World, data: GameData): DayReport {
 
   const health = healthDay(world, data, familyEvents);
   const tavernGoers = tavernEvening(world, data, tally);
+  const politics = politicsDay(world, data);
+  familyEvents.push(...politics.news);
+  if (world.day % data.town.property.reviewEveryDays === 0) familyEvents.push(...improveHomes(world, data));
   const growth: GrowthNews = { born: [], diedOfAge: [], married: [], homes: [] };
   growthDay(world, data, growth, familyEvents);
+
+  const fortune = fortuneOf(world, data);
+  const before = world.reports.at(-1)?.fortune;
+  if (before && before.level !== fortune.level) {
+    familyEvents.push(`The town is now ${/^[AEIOU]/.test(fortune.level) ? 'an' : 'a'} ${fortune.level.toLowerCase()} (${fortune.score > before.score ? 'rising' : 'falling'})`);
+  }
 
   const conversations = converse(world, data);
   world.conversations.push(...conversations);
@@ -98,6 +109,9 @@ export function tick(world: World, data: GameData): DayReport {
     tavernGoers,
     married: growth.married,
     propertySales: property.sales,
+    fortune,
+    mayor: world.mayor ? { id: world.mayor.id, name: world.citizens[world.mayor.id]!.name, doctrine: world.mayor.doctrine } : null,
+    election: politics.election ? { candidates: politics.election.candidates, votes: politics.election.votes, winner: politics.election.winner } : undefined,
     rentPaid: property.rentPaid,
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,

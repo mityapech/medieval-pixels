@@ -44,6 +44,10 @@
     "affordDays": 20,
     "membersForSecond": 6
   },
+  "progress": {
+    "improveAboveDays": 15,
+    "landlordImproveAbove": 40
+  },
   "growth": {
     "yearDays": 30,
     "birthsPerCouplePerYear": 0.3,
@@ -81,7 +85,8 @@
     "rentStep": 1.05,
     "plotPriceMeals": 30,
     "sellAbove": 1.15,
-    "investAboveDays": 50
+    "investAboveDays": 50,
+    "investorShare": 0.1
   },
   "construction": {
     "materials": { "wood": 2, "stone": 2, "nails": 4 },

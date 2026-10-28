@@ -301,7 +301,9 @@ export function generateLand(world: World, data: GameData): Land {
   homes.forEach((h, rank) => {
     const members = livingMembers(world, h);
     const wealth = 1 - rank / Math.max(1, homes.length - 1); // 1 for the richest, 0 for the poorest
-    const sizes: [number, number][] = wealth > 0.8 ? [[4, 3], [3, 4], [4, 4]] : members.length >= 5 ? [[3, 3], [4, 2], [2, 4]] : [[2, 2], [3, 2], [2, 3]];
+    // A humble start: only the very richest families have townhouses; most live in cottages.
+    const grand = wealth > 0.93;
+    const sizes: [number, number][] = grand ? [[4, 3], [3, 4], [4, 4]] : members.length >= 6 ? [[3, 3], [4, 2], [2, 4]] : [[2, 2], [3, 2], [2, 3]];
     const work = (t: string) => members.filter((m) => m.trade === t).length;
     const main = members.filter((m) => m.trade).map((m) => m.trade!).sort((a, b) => work(b) - work(a))[0];
     const pull = main && main !== 'merchant' && main !== 'baker' && main !== 'builder' && main !== 'blacksmith' ? workAt(main) : { x: mx, y: my };
@@ -326,8 +328,8 @@ export function generateLand(world: World, data: GameData): Land {
         ?? pick(w, hh, ['grass', 'forest'], undefined, (x, y) => -dist(x, y, mx, my), 6000) ?? { x: 1, y: 1 };
       best = { x: at.x, y: at.y, w, h: hh, s: 0 };
     }
-    const label = wealth > 0.8 ? `${h.family} townhouse` : best.w * best.h <= 4 ? `${h.family} cottage` : `${h.family} house`;
-    const p: Place = { key: `home:${h.id}`, label, sprite: wealth > 0.8 ? 'townhouse' : 'house', x: best.x, y: best.y, w: best.w, h: best.h };
+    const label = grand ? `${h.family} townhouse` : best.w * best.h <= 4 ? `${h.family} cottage` : `${h.family} house`;
+    const p: Place = { key: `home:${h.id}`, label, sprite: grand ? 'townhouse' : 'house', x: best.x, y: best.y, w: best.w, h: best.h };
     // Half the houses share a wall with the next; the rest keep an alley.
     claim(p, rand() < 0.5 ? 0 : 1);
     for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) building[idx(i, j)] = places.length - 1;

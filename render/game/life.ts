@@ -306,7 +306,8 @@ export class Life {
 
     for (const { m, to, gx, gy, near } of moving) {
       const pace = m.c.age < this.data.town.workingAge.adult ? 1.5 : m.c.age >= this.data.town.workingAge.elder ? 0.7 : 1;
-      const walk = WALK_PX_PER_MS * pace * dt * Math.max(1, Math.min(speed, 12));
+      // Walking keeps pace with the clock at every speed (at 60x a day passes in 4 seconds).
+      const walk = WALK_PX_PER_MS * pace * dt * Math.max(1, speed);
       if (near) {
         const dx = gx - m.x;
         const dy = gy - m.y;

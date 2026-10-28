@@ -40,7 +40,9 @@ describe('property', () => {
     expect(sales.length).toBeGreaterThan(0);
     for (const { key, d } of sales) {
       // (A house re-let to a new household is renamed, so match on who paid whom, when, for property.)
-      const paid = w.ledger.find((e) => e.day === d.day && e.memo.startsWith('buying ') && e.amount === d.price && e.to === w.citizens[d.from!]!.key && e.from === w.citizens[d.to!]!.key);
+      // The buying household pays from whoever holds its money; the head takes the deed.
+      const household = new Set(w.citizens.filter((c) => c.householdId === w.citizens[d.to!]!.householdId).map((c) => c.key));
+      const paid = w.ledger.find((e) => e.day === d.day && e.memo.startsWith('buying ') && e.amount === d.price && e.to === w.citizens[d.from!]!.key && (household.has(e.from) || e.from === w.citizens[d.to!]!.key));
       expect(paid?.amount, `${key} on day ${d.day}`).toBe(d.price);
     }
     expect(totalCoins(w)).toBe(start);

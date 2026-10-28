@@ -1,6 +1,7 @@
 // The neighbouring towns, simulated simply: a purse and a drifting price list. Merchants import and export through them.
 import type { GameData } from './data';
 import { neighbourPriceMult, roadCostMult } from './events';
+import { policyOf } from './politics';
 import { random } from './rng';
 import type { GoodId, Neighbour, World } from './types';
 
@@ -30,7 +31,7 @@ export function neighbourPrice(world: World, data: GameData, n: Neighbour, good:
 }
 
 function road(world: World, data: GameData): number {
-  return data.town.neighbours.roadCost * roadCostMult(world, data);
+  return data.town.neighbours.roadCost * roadCostMult(world, data) * policyOf(world, data).roadCostFactor;
 }
 
 /** The cheapest place to buy a good, and what it costs per unit delivered here (whole coins). */

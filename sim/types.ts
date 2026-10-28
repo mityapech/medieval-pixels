@@ -92,6 +92,12 @@ export interface TownConfig {
   };
   /** Evenings at the tavern: those who can spare it drink a couple of ales with company. */
   tavern: { alePerVisit: number; visitAboveDays: number; visitChance: number };
+  progress: {
+    /** A family that owns its home improves it when its savings cover this many days of living costs per tier. */
+    improveAboveDays: number;
+    /** A landlord improves a house they let when their own savings cover this many times three days of the tenants' costs. */
+    landlordImproveAbove: number;
+  };
   /** Ageing, births, old age and marriage. A year passes every yearDays days. */
   growth: {
     yearDays: number;
@@ -133,6 +139,8 @@ export interface TownConfig {
     sellAbove: number;
     /** Households with more than this many days of living costs to spare make offers on property. */
     investAboveDays: number;
+    /** Only this share of households, the richest, buy property at all. */
+    investorShare: number;
   };
   /** Buildings wear down each day; their owners pay builders to repair them with these materials. */
   construction: {
@@ -418,6 +426,8 @@ export interface Property {
   rent: number;
   /** Homes: rent the tenants could not pay (owed to the owner). */
   arrears: number;
+  /** Homes: 1 cottage, 2 house, 3 townhouse. Prosperous households improve their homes. */
+  tier?: number;
   /** Businesses: the trade worked there, its name, and the speciality it is known for. */
   trade?: Trade;
   name?: string;
@@ -430,10 +440,39 @@ export interface Property {
 export interface Project {
   key: string;
   owner: CitizenId;
-  kind: 'home' | 'business';
+  /** A new house to let, a new business, or improving an existing home to the next tier. */
+  kind: 'home' | 'business' | 'upgrade';
   trade?: Trade;
   progress: number;
   days: number;
+}
+
+export type Doctrine = 'liberal' | 'traditionalist' | 'isolationist' | 'freemarket';
+
+/** The town's policy, set by the mayor's doctrine (data/politics.json). */
+export interface Policy {
+  doctrine: Doctrine | null;
+  marketTax: number;
+  hearthTaxShare: number;
+  churchGrantShare: number;
+  wageBudgetShare: number;
+  /** How many of each public post the town wants, relative to the usual need. */
+  posts: { healer: number; teacher: number; priest: number; guard: number };
+  /** Extra share of an import's price paid to the treasury. */
+  tariff: number;
+  /** Whether food may be sent to other towns. */
+  exportFood: boolean;
+  /** Rent may not exceed this many meals per tile of floor (null: no cap). */
+  rentCapMeals: number | null;
+  plotPriceFactor: number;
+  roadCostFactor: number;
+  granaryFactor: number;
+}
+
+/** How the town is faring overall: a score and the standing it gives. */
+export interface Fortune {
+  score: number;
+  level: string;
 }
 
 export interface ActiveEvent {
@@ -509,6 +548,11 @@ export interface DayReport {
   /** People who spent the evening at the tavern. */
   tavernGoers: number;
   married: string[];
+  /** The town's fortune today (see sim/progress.ts). */
+  fortune: Fortune;
+  mayor: { id: CitizenId; name: string; doctrine: Doctrine } | null;
+  /** An election held today: candidates, votes and the winner. */
+  election?: { candidates: { id: CitizenId; name: string; doctrine: Doctrine }[]; votes: Record<number, number>; winner: CitizenId };
   /** Sales of property today: what, who to whom, and the price. */
   propertySales: string[];
   /** Rent and site fees paid today. */
@@ -538,6 +582,11 @@ export interface World {
   households: Household[];
   /** Terrain, roads and buildings, generated from the seed (see sim/land.ts). */
   land: Land;
+  /** The mayor in office and the doctrine they govern by (see sim/politics.ts). */
+  mayor?: { id: CitizenId; doctrine: Doctrine; since: number; termEnds: number };
+  elections: { day: number; mayor: CitizenId; doctrine: Doctrine }[];
+  /** People alive at the founding, to measure growth against. */
+  foundingPopulation: number;
   /** Who owns every building and site (see sim/property.ts). */
   property: Record<string, Property>;
   /** Buildings burghers are having built. */

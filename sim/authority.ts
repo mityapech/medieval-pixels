@@ -1,6 +1,7 @@
 // The town authority: market tax in, guards' and priests' wages out, a grant to the church, and the church's alms.
 import { cheapestMeal } from './agent';
 import { transfer } from './coins';
+import { policyOf } from './politics';
 import { remember } from './memory';
 import type { GameData } from './data';
 import { householdOf, isWorkingAge, livingMembers } from './family';
@@ -10,7 +11,7 @@ import { askPrice } from './market';
 import type { Citizen, GoodId, Office, World } from './types';
 
 export function marketTax(world: World, data: GameData, seller: Citizen, amount: number): number {
-  const tax = Math.min(seller.coins, Math.floor(amount * data.town.authority.marketTax));
+  const tax = Math.min(seller.coins, Math.floor(amount * policyOf(world, data).marketTax));
   if (tax > 0) transfer(world, seller, world.treasury, tax, 'market tax');
   return tax;
 }
@@ -40,7 +41,7 @@ function hearthTax(world: World, data: GameData): number {
     const above = purse - a.hearthTaxAboveDays * daily;
     if (above <= 0) continue;
     const payer = [...members].sort((x, y) => y.coins - x.coins)[0]!;
-    const tax = Math.min(Math.floor(above * a.hearthTaxShare), payer.coins);
+    const tax = Math.min(Math.floor(above * policyOf(world, data).hearthTaxShare), payer.coins);
     if (tax <= 0) continue;
     transfer(world, payer, world.treasury, tax, 'hearth tax');
     taken += tax;
@@ -62,7 +63,7 @@ export function authorityDay(world: World, data: GameData): { tax: number; alms:
   }
   // The treasury keeps a few weeks of wages and passes the rest on to the church a little at a time.
   const surplus = world.treasury.coins - a.treasuryKeepDays * Math.max(wagesPerDay, a.guardWage);
-  if (surplus > 0) transfer(world, world.treasury, world.church, Math.floor(surplus * a.churchGrantShare), 'church grant');
+  if (surplus > 0) transfer(world, world.treasury, world.church, Math.floor(surplus * policyOf(world, data).churchGrantShare), 'church grant');
   return { tax, alms: giveAlms(world, data) };
 }
 
@@ -97,16 +98,18 @@ export function reviewPosts(world: World, data: GameData): string[] {
   const recent = world.taxHistory.slice(-a.reviewEveryDays);
   const taxPerDay = recent.length ? recent.reduce((s, x) => s + x, 0) / recent.length : 0;
   const savingsBonus = Math.max(0, world.treasury.coins - 60 * a.guardWage) / 60;
-  const budget = taxPerDay * a.wageBudgetShare + savingsBonus;
+  const policy = policyOf(world, data);
+  const budget = taxPerDay * policy.wageBudgetShare + savingsBonus;
   // The town staffs posts for what it needs, most needed first (healers, priests, teachers, then guards),
   // as far as the budget goes. Tax limits posts but never creates them.
   const people = world.citizens.filter((c) => c.alive).length;
   const pupils = world.citizens.filter((c) => c.alive && c.age >= a.schoolAges[0] && c.age <= a.schoolAges[1]).length;
   const need: [PublicOffice, number][] = [
-    ['healer', Math.ceil(people / a.peoplePerHealer)],
-    ['priest', Math.ceil(people / a.peoplePerPriest)],
-    ['teacher', Math.ceil(pupils / a.pupilsPerTeacher)],
-    ['guard', Math.ceil(people / a.peoplePerGuard)],
+    // The mayor's doctrine wants more of some posts and fewer of others.
+    ['healer', Math.round((people / a.peoplePerHealer) * policy.posts.healer)],
+    ['priest', Math.round((people / a.peoplePerPriest) * policy.posts.priest)],
+    ['teacher', Math.round((pupils / a.pupilsPerTeacher) * policy.posts.teacher)],
+    ['guard', Math.round((people / a.peoplePerGuard) * policy.posts.guard)],
   ];
   const want = {} as Record<PublicOffice, number>;
   let left = budget;
@@ -157,7 +160,7 @@ export function stockGranary(world: World, data: GameData): void {
   if (budget <= 0 || (world.unmet.food ?? 0) > 0) return;
   for (const good of g.goods) {
     if ((world.unmet[good] ?? 0) > 0) continue;
-    let room = g.targetUnits - stockOf(world.granary, good);
+    let room = Math.round(g.targetUnits * policyOf(world, data).granaryFactor) - stockOf(world.granary, good);
     const ceiling = data.goods.get(good)!.basePrice * g.buyBelow;
     const sellers = world.citizens
       .filter((c) => c.alive && c.prices[good] !== undefined && sellableQty(world, data, c, good) > 0 && askPrice(c, good) <= ceiling)

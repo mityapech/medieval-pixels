@@ -23,6 +23,8 @@ export function createWorld(data: GameData, seed = 1): World {
     land: { width: 0, height: 0, terrain: [], roads: [], boardwalks: [], walls: [], gates: [], docks: [], river: false, places: [] },
     buildings: {},
     property: {},
+    elections: [],
+    foundingPopulation: 0,
     projects: [],
     waiting: [],
     batches: new Map(),
@@ -102,6 +104,7 @@ export function createWorld(data: GameData, seed = 1): World {
   world.land = generateLand(world, data);
   world.buildings = initialBuildings(world);
   world.property = initialProperty(world, data);
+  world.foundingPopulation = world.citizens.length;
   return world;
 }
 

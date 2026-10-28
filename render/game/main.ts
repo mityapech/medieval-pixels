@@ -9,6 +9,7 @@ import {
 } from '../../sim/index';
 import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
 import { Life, type Mover, type Target } from './life';
+import { doctrineName } from '../../sim/politics';
 
 const data = loadData();
 const params = new URLSearchParams(location.search);
@@ -131,9 +132,21 @@ function drawPlaces(): void {
   placeLayer.removeChildren().forEach((c) => c.destroy({ children: true }));
   for (const p of places.values()) {
     const { colour } = spriteFor(p.sprite);
+    // Run-down buildings are drawn dimmer, with cracks; well-kept homes of the better-off get a tiled roof edge.
+    const condition = world.buildings[p.key]?.condition ?? 80;
+    const fade = condition < 40 ? 0.55 + condition / 100 : 1;
+    const shade = (c: number) => (Math.round(((c >> 16) & 255) * fade) << 16) | (Math.round(((c >> 8) & 255) * fade) << 8) | Math.round((c & 255) * fade);
+    const tier = world.property[p.key]?.tier;
     const g = new Graphics()
-      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).fill(colour)
-      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).stroke({ width: 2, color: 0x3a3226, alpha: 0.5 });
+      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).fill(shade(colour))
+      .rect(p.x * TILE + 2, p.y * TILE + 2, p.w * TILE - 4, p.h * TILE - 4).stroke({ width: tier === 3 ? 4 : 2, color: tier === 3 ? 0x7a2e1e : 0x3a3226, alpha: tier === 3 ? 0.9 : 0.5 });
+    if (condition < 40) {
+      for (let k = 0; k < Math.ceil((40 - condition) / 10); k++) {
+        const cx = (p.x + 0.3 + ((k * 0.37) % 1) * (p.w - 0.6)) * TILE;
+        const cy = (p.y + 0.5 + ((k * 0.61) % 1) * (p.h - 0.8)) * TILE;
+        g.moveTo(cx, cy).lineTo(cx + 6, cy + 5).lineTo(cx + 3, cy + 11).stroke({ width: 1.5, color: 0x1a1a19, alpha: 0.6 });
+      }
+    }
     if (p.sprite === 'site') {
       // Scaffolding: crossed poles over the plot.
       for (let k = 0; k < p.w; k++) g.moveTo((p.x + k) * TILE + 4, p.y * TILE + 4).lineTo((p.x + k + 1) * TILE - 4, (p.y + p.h) * TILE - 4).stroke({ width: 2, color: 0x5a3f22 });
@@ -278,8 +291,9 @@ function newDay(): void {
   if (world.land.places.map((p) => `${p.key}|${p.label}`).join() !== before) {
     places.clear();
     for (const [k, p] of layoutTown(world)) places.set(k, p);
-    drawPlaces();
   }
+  // Redrawn every day: buildings show their condition as they wear down or are repaired.
+  drawPlaces();
   addWalkers();
   life.newDay();
   scheduleTalks(report.conversations);
@@ -483,6 +497,8 @@ function refreshMoney(): void {
   const dl = document.getElementById('money')!;
   const rows: [string, string][] = r
     ? [
+        ['Standing', `${r.fortune.level} (${r.fortune.score})`],
+        ['Mayor', r.mayor ? `${r.mayor.name}, ${doctrineName(r.mayor.doctrine)}` : 'none yet'],
         ['Bread', r.prices.bread !== undefined ? `${r.prices.bread.toFixed(1)} coins` : '–'],
         ['Vegetables', r.prices.vegetables !== undefined ? `${r.prices.vegetables.toFixed(1)} coins` : '–'],
         ['Wood', r.prices.wood !== undefined ? `${r.prices.wood.toFixed(1)} coins` : '–'],
@@ -526,6 +542,11 @@ function postNews(r: DayReport): void {
   const items: string[] = [];
   for (const e of r.eventsStarted) items.push(`Event: ${e}`);
   for (const s of r.starved) items.push(`${s.name} starved`);
+  if (r.election) {
+    const tally = r.election.candidates.map((c) => `${c.name} (${doctrineName(c.doctrine)}) ${r.election!.votes[c.id] ?? 0}`).join(', ');
+    items.push(`Election results: ${tally}`);
+  }
+  for (const sale of r.propertySales) items.push(sale);
   for (const j of r.jobChanges) {
     items.push(!j.from ? `${j.name} started work as a ${j.to}` : !j.to ? `${j.name} stopped working as a ${j.from}` : `${j.name} left ${j.from} work to become a ${j.to}`);
   }
@@ -615,7 +636,7 @@ function inspectCitizen(c: Citizen): void {
     h('h3', c.name),
     facts([
       ['Age', `${c.age}`],
-      ['Work', job],
+      ['Work', job + (world.mayor?.id === c.id ? `; mayor (${doctrineName(world.mayor.doctrine)})` : '')],
       ['Traits', c.traits.join(', ')],
       ['Household', `${hh.family} (${members.length} living)${hh.headId === c.id ? ', head' : ''}`],
       ['Coins', `${c.coins} (household ${purse})`],

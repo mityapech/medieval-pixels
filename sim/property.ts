@@ -13,6 +13,8 @@ import { householdOf, isWorkingAge, livingMembers, takeUpTrade } from './family'
 import { takeGoods } from './inventory';
 import { findHousePlot } from './land';
 import { buyBest, type DayTally } from './market';
+import { policyOf } from './politics';
+import { finishUpgrade } from './progress';
 import { remember } from './memory';
 import { random } from './rng';
 import type { Citizen, Household, Place, Project, Property, Trade, World } from './types';
@@ -81,6 +83,13 @@ function fairRent(data: GameData, place: Place, someone: Citizen): number {
   return Math.max(1, Math.round(tiles(place) * data.town.property.rentPerTileMeals * cheapestMeal(data, someone)));
 }
 
+/** The most rent the mayor allows on a house, if their doctrine caps rents. */
+function rentCap(world: World, data: GameData, key: string): number {
+  const cap = policyOf(world, data).rentCapMeals;
+  const place = world.land.places.find((p) => p.key === key);
+  return cap === null || !place ? Infinity : Math.max(1, Math.round(tiles(place) * cap * cheapestMeal(data, world.citizens[0]!)));
+}
+
 /** At the founding: burghers own the businesses and most houses, the well-off own their homes, the rest rent. */
 export function initialProperty(world: World, data: GameData): Record<string, Property> {
   const cfg = data.town.property;
@@ -98,7 +107,9 @@ export function initialProperty(world: World, data: GameData): Record<string, Pr
       const ownHome = owners.has(hid);
       const owner = ownHome ? world.households[hid]!.headId : burghers[i % burghers.length]!.id;
       const someone = world.citizens[world.households[hid]!.headId]!;
-      out[p.key] = { owner, kind: 'home', deeds: grant(owner), rent: ownHome ? 0 : fairRent(data, p, someone), arrears: 0 };
+      // Most families start in a cottage; a few in a house, the richest in a townhouse.
+      const tier = p.sprite === 'townhouse' ? 3 : p.w * p.h <= 4 ? 1 : 2;
+      out[p.key] = { owner, kind: 'home', deeds: grant(owner), rent: ownHome ? 0 : fairRent(data, p, someone), arrears: 0, tier };
     } else {
       const owner = burghers[i % burghers.length]!;
       const trade = tradeOfSite(p.key);
@@ -178,6 +189,18 @@ export function propertyDay(world: World, data: GameData, tally: DayTally, event
   return { sales, rentPaid };
 }
 
+/** The head of someone's household (or themselves), who holds the household's deeds. */
+function householdHead(world: World, c: Citizen): Citizen {
+  const head = world.citizens[householdOf(world, c).headId]!;
+  return head.alive ? head : c;
+}
+
+/** Households rich enough to buy property: only the richest few (property.investorShare of households). */
+function wealthyFew(world: World, data: GameData): Set<number> {
+  const homes = world.households.filter((h) => livingMembers(world, h).length).sort((a, b) => purseOf(world, b) - purseOf(world, a));
+  return new Set(homes.slice(0, Math.max(1, Math.round(homes.length * data.town.property.investorShare))).map((h) => h.id));
+}
+
 /** Owners short of money put property up for sale; the wealthy bid; the best bid wins, at a price set by competition. */
 function landMarket(world: World, data: GameData): string[] {
   const cfg = data.town.property;
@@ -195,8 +218,9 @@ function landMarket(world: World, data: GameData): string[] {
     p.forSale.asking = Math.max(1, Math.round(p.forSale.asking * cfg.markdownPerDay));
     // Bidders: households with plenty to spare, valuing it at what it earns (more if they already own the trade).
     const value = valueOf(world, data, key);
+    const few = wealthyFew(world, data);
     const bids = world.households
-      .filter((b) => b.id !== h.id && livingMembers(world, b).length)
+      .filter((b) => b.id !== h.id && few.has(b.id) && livingMembers(world, b).length)
       .map((b) => ({ b, spare: Math.floor(purseOf(world, b) - cfg.buyAboveDays * dailyCost(world, data, b)) }))
       .filter((x) => x.spare >= p.forSale!.asking)
       .map((x) => ({ ...x, worth: Math.min(x.spare, Math.round(value * (0.9 + random(world) * 0.3))) }))
@@ -208,8 +232,10 @@ function landMarket(world: World, data: GameData): string[] {
     const buyer = [...livingMembers(world, bids[0]!.b)].sort((x, y) => y.coins - x.coins)[0]!;
     if (buyer.coins < price) continue;
     transfer(world, buyer, owner, price, `buying ${key}`);
-    p.deeds.push({ day: world.day, from: owner.id, to: buyer.id, price });
-    p.owner = buyer.id;
+    // The household pays from whoever holds its money; the head holds the deed.
+    const holder = householdHead(world, buyer);
+    p.deeds.push({ day: world.day, from: owner.id, to: holder.id, price });
+    p.owner = holder.id;
     p.forSale = undefined;
     const label = world.land.places.find((q) => q.key === key)?.label ?? key;
     sales.push(`${buyer.name} bought ${label} from ${owner.name} for ${price} coins`);
@@ -226,7 +252,9 @@ function landMarket(world: World, data: GameData): string[] {
 function offers(world: World, data: GameData): string[] {
   const cfg = data.town.property;
   const sales: string[] = [];
+  const few = wealthyFew(world, data);
   const investors = world.households
+    .filter((h) => few.has(h.id))
     .map((h) => ({ h, spare: Math.floor(purseOf(world, h) - cfg.investAboveDays * dailyCost(world, data, h)), bought: false }))
     .filter((x) => x.spare > 0 && livingMembers(world, x.h).length);
   if (!investors.length) return sales;
@@ -247,8 +275,10 @@ function offers(world: World, data: GameData): string[] {
     const buyer = [...livingMembers(world, top.h)].sort((x, y) => y.coins - x.coins)[0]!;
     if (buyer.coins < price) continue;
     transfer(world, buyer, owner, price, `buying ${key}`);
-    p.deeds.push({ day: world.day, from: owner.id, to: buyer.id, price });
-    p.owner = buyer.id;
+    // The household pays from whoever holds its money; the head holds the deed.
+    const holder = householdHead(world, buyer);
+    p.deeds.push({ day: world.day, from: owner.id, to: holder.id, price });
+    p.owner = holder.id;
     top.spare -= price;
     top.bought = true; // one purchase a week each
     const label = world.land.places.find((q) => q.key === key)?.label ?? key;
@@ -268,6 +298,7 @@ function adjustRents(world: World, data: GameData): string[] {
     const empty = !h || !livingMembers(world, h).length;
     if (empty) p.rent = Math.max(1, Math.floor(p.rent / cfg.rentStep));
     else if (demand > 0 && p.arrears === 0) p.rent = Math.ceil(p.rent * cfg.rentStep);
+    p.rent = Math.min(p.rent, rentCap(world, data, key));
   }
   return [];
 }
@@ -313,6 +344,7 @@ function rekey(world: World, from: string, to: string, label?: string): void {
   if (world.property[from]) { world.property[to] = world.property[from]!; delete world.property[from]; }
   if (world.buildings[from]) { world.buildings[to] = world.buildings[from]!; delete world.buildings[from]; }
   for (const c of world.citizens) if (c.workplace === from) c.workplace = to;
+  for (const pr of world.projects) if (pr.key === from) pr.key = to;
 }
 
 /**
@@ -327,7 +359,7 @@ function develop(world: World, data: GameData): string[] {
     const b = world.citizens[id]!;
     if (!b.alive || world.projects.some((p) => p.owner === id)) continue;
     const h = householdOf(world, b);
-    const plotPrice = Math.ceil(cfg.plotPriceMeals * cheapestMeal(data, b));
+    const plotPrice = Math.ceil(cfg.plotPriceMeals * cheapestMeal(data, b) * policyOf(world, data).plotPriceFactor);
     const buildCost = estimateBuild(world, data, b);
     if (purseOf(world, h) < cfg.developAboveDays * dailyCost(world, data, h) + plotPrice + buildCost || b.coins < plotPrice) continue;
     const vacant = Object.entries(world.property).some(([k, p]) => p.kind === 'home' && p.rent > 0 && !livingMembers(world, world.households[Number(k.slice(5))] ?? { memberIds: [] } as unknown as Household).length);
@@ -402,6 +434,7 @@ export function buildProjects(world: World, data: GameData, tally: DayTally, bui
 
 function finishProject(world: World, data: GameData, project: Project): string {
   const owner = world.citizens[project.owner]!;
+  if (project.kind === 'upgrade') return finishUpgrade(world, project.key, owner);
   const place = world.land.places.find((p) => p.key === project.key)!;
   const prop = world.property[project.key]!;
   world.buildings[project.key] = { condition: 100 };
@@ -412,6 +445,7 @@ function finishProject(world: World, data: GameData, project: Project): string {
     const key = `home:${h.id}`;
     place.sprite = 'house';
     prop.rent = fairRent(data, place, owner);
+    prop.tier = 2;
     rekey(world, project.key, key, `House to let (${owner.name})`);
     return `${owner.name}'s new house is ready to let`;
   }

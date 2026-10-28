@@ -2,7 +2,7 @@
 // Reads only what sim/index.ts exports; nothing here changes the simulation.
 import Chart from 'chart.js/auto';
 import type { Plugin } from 'chart.js';
-import { createWorld, loadData, runDays, type DayReport, type World } from '../../sim/index';
+import { createWorld, loadData, runDays, type DayReport, type Doctrine, type World } from '../../sim/index';
 
 const data = loadData();
 
@@ -11,7 +11,8 @@ const data = loadData();
 function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
-const slot = (n: number) => token(`--series-${n}`);
+// Eight colours; series beyond that reuse them in order.
+const slot = (n: number) => token(`--series-${((n - 1) % 8) + 1}`);
 
 // ---------- series helpers ----------
 
@@ -64,12 +65,24 @@ const goodGroups = (value: (g: string) => Value): Group[] =>
 const JOBS: [string, string][] = [
   ['farmer', 'Farmers'], ['baker', 'Bakers'], ['lumberjack', 'Lumberjacks'], ['miner', 'Miners'], ['forager', 'Foragers'],
   ['fisherman', 'Fishermen'], ['builder', 'Builders'], ['innkeeper', 'Innkeepers'], ['blacksmith', 'Blacksmiths'],
-  ['merchant', 'Merchants'], ['guard', 'Guards'], ['priest', 'Priests'], ['servant', 'Servants'],
+  ['merchant', 'Merchants'], ['guard', 'Guards'], ['priest', 'Priests'], ['teacher', 'Teachers'], ['healer', 'Healers'],
+  ['servant', 'Servants'],
 ];
+
+const DOCTRINES: [Doctrine, string][] = [['liberal', 'Liberal Reformer'], ['traditionalist', 'Traditionalist'], ['isolationist', 'Isolationist'], ['freemarket', 'Free Marketeer']];
 
 const one = (series: Series[]): Group[] => [{ name: '', series }];
 
 const CHARTS: ChartDef[] = [
+  {
+    id: 'fortune', title: 'Town fortune', unit: 'score (0 to 100)',
+    what: 'How the town is faring: savings, growth, the state of its homes, work and hardship. Coloured by the mayor in office: Destitute below 25, Struggling hamlet 25 to 40, Humble village to 55, Modest market town to 70, Thriving town to 85, then Prosperous town.',
+    groups: one(DOCTRINES.map(([d, label], k) => ({
+      label, slot: k + 1,
+      // Each doctrine's line runs only through its mayors' terms (joined at the hand-over so the line is unbroken).
+      value: (rs, i) => (rs[i]!.mayor?.doctrine === d || rs[i + 1]?.mayor?.doctrine === d ? rs[i]!.fortune.score : null),
+    }))),
+  },
   {
     id: 'population', title: 'Population', unit: 'people',
     what: 'People alive, by age group. People are born, grow up, grow old and die, so the town grows or shrinks over time.',
