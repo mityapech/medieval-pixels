@@ -752,7 +752,7 @@ function refreshHall(): void {
 }
 document.getElementById('hall')!.addEventListener('click', () => {
   hallPanel.hidden = !hallPanel.hidden;
-  if (!hallPanel.hidden) { panel.hidden = true; refreshHall(); }
+  if (!hallPanel.hidden) { panel.hidden = true; selected = null; refreshHall(); }
 });
 document.getElementById('hall-close')!.addEventListener('click', () => { hallPanel.hidden = true; });
 
@@ -853,6 +853,7 @@ const MEMORY: Record<string, (p: Record<string, string | number>) => string> = {
 };
 
 function inspectCitizen(c: Citizen): void {
+  hallPanel.hidden = true; // one panel at a time: whoever you click replaces the Town Hall
   selected = c.id;
   const hh = householdOf(world, c);
   const members = livingMembers(world, hh);
@@ -1007,6 +1008,7 @@ function miracle(text: string, c: Citizen): void {
 
 /** Everyone in town, filterable by name or work; click a name to inspect them. */
 function showPeople(): void {
+  hallPanel.hidden = true;
   selected = null;
   const filter = document.createElement('input');
   filter.className = 'people-filter';
@@ -1030,7 +1032,8 @@ function showPeople(): void {
 document.getElementById('people')!.addEventListener('click', showPeople);
 
 function inspectPlace(p: Place): void {
-  if (p.key === 'townhall' && !onTitle) { panel.hidden = true; hallPanel.hidden = false; refreshHall(); return; }
+  if (p.key === 'townhall' && !onTitle) { panel.hidden = true; selected = null; hallPanel.hidden = false; refreshHall(); return; }
+  hallPanel.hidden = true;
   selected = null;
   const r = world.reports.at(-1);
   body.replaceChildren(h('h3', p.label));
