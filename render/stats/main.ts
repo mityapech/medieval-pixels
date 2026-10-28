@@ -72,7 +72,7 @@ const one = (series: Series[]): Group[] => [{ name: '', series }];
 const CHARTS: ChartDef[] = [
   {
     id: 'population', title: 'Population', unit: 'people',
-    what: 'People alive, by age group. Nobody is born or ages in this version, so the total only falls with deaths.',
+    what: 'People alive, by age group. People are born, grow up, grow old and die, so the town grows or shrinks over time.',
     groups: one([
       { label: 'Everyone', slot: 1, value: (rs, i) => rs[i]!.alive },
       { label: 'Children (under 12)', slot: 2, value: (rs, i) => rs[i]!.ages.children },
@@ -408,7 +408,10 @@ function tile(label: string, value: string, note: string, tone: '' | 'up' | 'dow
 function renderTiles(world: World): void {
   const first = reports[0]!;
   const last = reports.at(-1)!;
-  const dead = world.citizens.filter((c) => !c.alive).length;
+  const sum = (f: (r: DayReport) => number) => reports.reduce((s, r) => s + f(r), 0);
+  const starved = sum((r) => r.starved.length);
+  const born = sum((r) => r.born.length);
+  const died = sum((r) => r.diedOfAge.length + r.diedOfIllness.length);
   const change = (now: number, then: number) => {
     const pct = then ? Math.round((100 * (now - then)) / then) : 0;
     return { text: `${pct >= 0 ? '+' : ''}${pct}% since day 1`, tone: (pct >= 0 ? 'up' : 'down') as 'up' | 'down' };
@@ -417,7 +420,7 @@ function renderTiles(world: World): void {
   const coins = change(last.townCoins, first.townCoins);
   const unemployed = (100 * (last.jobs.unemployed ?? 0)) / Math.max(1, last.ages.adults);
   document.getElementById('tiles')!.replaceChildren(
-    tile('Population', `${last.alive} / ${world.citizens.length}`, dead ? `${dead} starved` : 'Nobody starved', dead ? 'down' : 'up'),
+    tile('Population', `${last.alive}`, `${born} born, ${died} died${starved ? `, ${starved} starved` : ''}`, starved || last.alive < first.alive ? 'down' : 'up'),
     tile('Median household', `${last.wealth.median} coins`, wealth.text, wealth.tone),
     tile('Unemployed', `${unemployed.toFixed(1)}%`, `${last.jobs.unemployed ?? 0} of ${last.ages.adults} working age`),
     tile('Coins in town', last.townCoins.toLocaleString(), coins.text, coins.tone),

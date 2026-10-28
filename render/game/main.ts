@@ -502,7 +502,7 @@ function refreshMoney(): void {
     return [dt, dd];
   }));
   document.getElementById('events')!.textContent = world.events.length ? `Now: ${world.events.map((e) => e.name).join(', ')}` : '';
-  (document.getElementById('ledger') as HTMLAnchorElement).href = `/stats.html?seed=${seed}&days=${Math.max(100, world.day)}`;
+  (document.getElementById('ledger') as HTMLAnchorElement).href = `stats.html?seed=${seed}&days=${Math.max(100, world.day)}`;
 }
 
 // ---------- controls: step a day, start a new town ----------
@@ -709,7 +709,28 @@ document.getElementById('people')!.addEventListener('click', showPeople);
 function inspectPlace(p: Place): void {
   selected = null;
   const r = world.reports.at(-1);
-  body.replaceChildren(h('h3', p.label), h('p', `Sprite: ${spriteFor(p.sprite).sprite} (placeholder)`, 'muted'));
+  body.replaceChildren(h('h3', p.label));
+  // Who owns it, what it earns, its condition, and every time it has changed hands.
+  const prop = world.property[p.key];
+  if (prop) {
+    const owner = prop.owner === null ? 'the town' : world.citizens[prop.owner]!.name;
+    const rows: [string, string][] = [['Owner', owner]];
+    if (prop.niche) rows.push(['Known for', prop.niche]);
+    if (prop.kind === 'home') rows.push(['Rent', prop.rent ? `${prop.rent} coins a day${prop.arrears ? ` (${prop.arrears} owed)` : ''}` : 'owner lives here']);
+    const cond = world.buildings[p.key]?.condition;
+    if (cond !== undefined) rows.push(['Condition', `${Math.round(cond)}%${cond < 40 ? ' (run down)' : cond > 85 ? ' (well kept)' : ''}`]);
+    if (prop.forSale) rows.push(['For sale', `${prop.forSale.asking} coins`]);
+    body.append(facts(rows));
+    if (prop.deeds.length > 1) {
+      const ol = h('ol', undefined, 'trace');
+      for (const d of prop.deeds.slice(1)) {
+        const from = d.from === null ? 'the town' : world.citizens[d.from]!.name;
+        const to = d.to === null ? 'the town' : world.citizens[d.to]!.name;
+        ol.append(h('li', `Day ${d.day}: ${from} to ${to}, ${d.price} coins`));
+      }
+      body.append(h('h4', 'Deeds'), ol);
+    }
+  }
   if (p.key.startsWith('home:')) {
     const hh = world.households[Number(p.key.slice(5))]!;
     const ul = h('ul');
@@ -722,10 +743,10 @@ function inspectPlace(p: Place): void {
   } else if (p.key === 'granary') {
     body.append(facts(data.town.granary.goods.map((g) => [data.goods.get(g)!.name, `${stockOf(world.granary, g)} in store`])));
   } else if (p.key.startsWith('work:')) {
-    const trade = p.key.slice(5);
     const ul = h('ul');
-    for (const c of world.citizens.filter((x) => x.alive && x.trade === trade)) ul.append(personLink(c));
-    body.append(h('h4', 'Works here'), ul);
+    const here = world.citizens.filter((x) => x.alive && x.trade && (x.workplace ?? `work:${x.trade}`) === p.key);
+    for (const c of here) ul.append(personLink(c, c.employer !== undefined ? ` — paid wages by ${world.citizens[c.employer]!.name}` : ''));
+    body.append(h('h4', 'Works here'), here.length ? ul : h('p', 'Nobody at the moment.', 'muted'));
   }
   panel.hidden = false;
 }
