@@ -43,6 +43,12 @@ the same day. Founding a new town replaces the old one, so stay with the one you
 | **Play god** | Click a person, open **✦ Powers**: rename them or their family, set their coins, marry or part them, move them to another household, make them head of it |
 | **Settings, save** | **Menu**: back to the title screen, settings (day length, start speed, labels). The town saves itself |
 
+**Gifts and class.** Everyone is born with one of six work traits: *tough* (mining, woodcutting, building),
+*green-fingered* (farming, foraging), *seafaring* (fishing), *deft* (smithing, baking), *charming* (the tavern) and
+*greedy* (trading). A gifted worker makes up to 60–70% more, and people drift towards the work that suits them.
+Labourers rarely get the chance to change trade, climbing to a craft or to trading takes a much bigger reason, and
+well-off families would rather stay merchants and burghers than go back to labour.
+
 Coins you give with ✦ Powers come from the heavens' purse (50,000 coins), and coins you take go back to it: no coin
 is ever created or destroyed, even by you.
 

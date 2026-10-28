@@ -2,7 +2,7 @@
 // by the household, the town's own buildings by the treasury. A builder buys the materials (wood, stone, nails)
 // at market, does the work, and is paid the materials plus a day's labour. A household that cannot afford repairs
 // lets its home run down; work sites out in the country do not decay.
-import { cheapestMeal, foodReserveCoins } from './agent';
+import { cheapestMeal, foodReserveCoins, talent } from './agent';
 import { transfer } from './coins';
 import type { GameData } from './data';
 import { livingMembers } from './family';
@@ -44,7 +44,8 @@ export function constructionDay(world: World, data: GameData, tally: DayTally): 
   for (const c of builders) c.today.job = undefined;
   const jobs = Object.entries(world.buildings).filter(([, b]) => b.condition < construction.repairBelow).sort((a, b) => a[1].condition - b[1].condition);
   for (const [key, b] of jobs) {
-    const builder = builders.find((c) => !c.today.job);
+    // The most able free builder takes the worst job.
+    const builder = builders.filter((c) => !c.today.job).sort((x, y) => talent(data, y, 'builder') - talent(data, x, 'builder'))[0];
     if (!builder) break;
     const label = world.land.places.find((p) => p.key === key)?.label ?? key;
     // Who pays: the household for its home (if it can spare it), the treasury for the town's buildings.
@@ -71,7 +72,7 @@ export function constructionDay(world: World, data: GameData, tally: DayTally): 
     const spent = before - builder.coins;
     const bill = Math.min(payer.coins, Math.max(price, spent + Math.ceil(construction.labourMeals * cheapestMeal(data, builder))));
     transfer(world, payer, builder, bill, `repairs to the ${label}`);
-    b.condition = Math.min(100, b.condition + construction.repairAmount);
+    b.condition = Math.min(100, b.condition + Math.round(construction.repairAmount * talent(data, builder, 'builder')));
     builder.today.job = key;
     remember(world, builder, 'built', { place: label });
     news.push(`${builder.name} repaired the ${label}`);

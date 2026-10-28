@@ -31,6 +31,12 @@ export interface RecipeDef {
 
 export interface TraitDef {
   id: string;
+  /** 'work': one of the six gifts for particular trades, which everyone has one of; 'temper': a character trait. */
+  kind: 'work' | 'temper';
+  /** What the trait means, for the player. */
+  about?: string;
+  /** Output in particular trades, as a multiplier (1.6: far better than most, 0.6: poor at it). */
+  talent?: Partial<Record<Trade, number>>;
   outputMult?: number;
   priceStepMult?: number;
   marginBonus?: number;
@@ -40,6 +46,8 @@ export interface TraitDef {
 }
 
 export interface TradeConfig {
+  /** Standing: 0 labour (farming, gathering, building), 1 a craft, 2 trade. */
+  rank: number;
   share: number;
   startCoins: number;
   /** Coins needed beyond tools and inputs to start this trade (a merchant's stock money). */
@@ -197,6 +205,14 @@ export interface TownConfig {
     quitWhenSavedDays: number;
     /** How many practitioners of each trade a person knows of when judging what it earns. */
     acquaintances: number;
+    /** Labourers (rank 0) reconsider their work this much less often: they have little to fall back on. */
+    labourerChangeMult: number;
+    /** The gain needed to move up is multiplied by this for each rank climbed. */
+    climbGainMult: number;
+    /** How much a talent for a trade adds to what it seems worth (in units of 4 × minGain per +100%). */
+    talentWeight: number;
+    /** A household with this many coins per member (or that owns property) will not go down in the world. */
+    genteelCoinsPerMember: number;
   };
   authority: {
     startTreasury: number;

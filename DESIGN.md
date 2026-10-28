@@ -244,6 +244,19 @@ Built in `sim/property.ts` (with `sim/construction.ts` and `sim/land.ts`). Setti
 - Eviction for long arrears, leases, and the player owning property (the player milestone).
 - A tax or upkeep per property if one burgher starts buying everything.
 
+### Traits, gifts and class
+
+Everyone is born with one of six work traits (`data/traits.json`, kind `work`) and half with a temper trait
+(hardworking, lazy, thrifty, stubborn, restless). A work trait's `talent` multiplies output in its trades (1.4–1.7):
+goods per batch for makers, repair and building progress for builders, visits per day for merchants. When choosing
+work, a gift adds to what a trade seems worth, and at the founding gifted people fill their trades first.
+
+Trades have a rank (`rank` in `data/town.json`): 0 labour (farmer, lumberjack, miner, forager, fisherman, builder),
+1 craft (baker, blacksmith, innkeeper), 2 trade (merchant). Labourers reconsider their work about a third as often
+(`labourerChangeMult`); the gain needed to move up grows by `climbGainMult` for each rank climbed; and nobody takes
+lower-ranked work unless losing money, a well-off family (property beyond its home, or `genteelCoinsPerMember`)
+not until it is struggling.
+
 ## 9. The player
 
 - Starts as an ordinary citizen with almost nothing (assumed default; open question below).

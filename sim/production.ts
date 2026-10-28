@@ -1,5 +1,5 @@
 // Work phase: each worker picks the most profitable recipe they can run and makes a traceable batch.
-import { dailyLivingCost, observePrice, recipesOf, seenPrice, trait } from './agent';
+import { dailyLivingCost, observePrice, recipesOf, seenPrice, talent, trait } from './agent';
 import type { GameData } from './data';
 import { recipeOutputMult } from './events';
 import { nicheBonus } from './property';
@@ -97,7 +97,7 @@ export function runRecipe(world: World, data: GameData, c: Citizen, r: RecipeDef
       cost += lot.qty * lot.unitCost;
     }
   }
-  const mult = factor * trait(data, c, 'outputMult') * recipeOutputMult(world, data, r.id);
+  const mult = factor * trait(data, c, 'outputMult') * talent(data, c, c.trade) * recipeOutputMult(world, data, r.id);
   for (const [g, q] of Object.entries(r.outputs)) {
     const qty = roundRandom(world, q * mult);
     c.workLog?.push({ recipe: r.id, qty: Math.max(0, qty) });

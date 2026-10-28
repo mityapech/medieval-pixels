@@ -6,7 +6,7 @@
 // Burghers invest: they buy plots from the town and pay builders to put up houses to let or new businesses,
 // which they name and give a speciality.
 import businessesJson from '../data/businesses.json';
-import { cheapestMeal, foodReserveCoins, recipesOf } from './agent';
+import { cheapestMeal, foodReserveCoins, recipesOf, talent } from './agent';
 import { transfer } from './coins';
 import type { GameData } from './data';
 import { householdOf, isWorkingAge, livingMembers, takeUpTrade } from './family';
@@ -427,7 +427,8 @@ export function buildProjects(world: World, data: GameData, tally: DayTally, bui
     for (const [g, q] of share) takeGoods(builder, g, q);
     transfer(world, owner, builder, Math.min(owner.coins, before - builder.coins + labour), `building for ${owner.name}`);
     builder.today.job = project.key;
-    project.progress++;
+    // An able builder gets through more of the work in a day.
+    project.progress += talent(data, builder, 'builder');
     if (project.progress >= project.days) news.push(finishProject(world, data, project));
   }
   world.projects = world.projects.filter((p) => p.progress < p.days && world.citizens[p.owner]!.alive);

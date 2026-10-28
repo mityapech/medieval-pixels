@@ -1,12 +1,194 @@
 {
   "traits": [
-    { "id": "hardworking", "outputMult": 1.25 },
-    { "id": "lazy",        "outputMult": 0.8 },
-    { "id": "greedy",      "priceStepMult": 1.5, "marginBonus": 0.1 },
-    { "id": "thrifty",     "extraVisits": 2, "extraFoodDays": 1 },
-    { "id": "stubborn",    "jobChangeMult": 0 },
-    { "id": "restless",    "jobChangeMult": 2 }
+    {
+      "id": "tough",
+      "kind": "work",
+      "about": "strong and hardy: made for the mine, the woods and the building site",
+      "talent": {
+        "miner": 1.6,
+        "lumberjack": 1.6,
+        "builder": 1.4
+      }
+    },
+    {
+      "id": "green-fingered",
+      "kind": "work",
+      "about": "anything planted grows for them",
+      "talent": {
+        "farmer": 1.6,
+        "forager": 1.5
+      }
+    },
+    {
+      "id": "seafaring",
+      "kind": "work",
+      "about": "at home on the water, patient with a line",
+      "talent": {
+        "fisherman": 1.7,
+        "forager": 1.2
+      }
+    },
+    {
+      "id": "deft",
+      "kind": "work",
+      "about": "clever hands: a craftsman's gift",
+      "talent": {
+        "blacksmith": 1.6,
+        "baker": 1.5,
+        "builder": 1.3
+      }
+    },
+    {
+      "id": "charming",
+      "kind": "work",
+      "about": "everyone likes them: good with customers",
+      "talent": {
+        "innkeeper": 1.7,
+        "merchant": 1.3
+      }
+    },
+    {
+      "id": "greedy",
+      "kind": "work",
+      "about": "drives hard bargains: a born trader",
+      "priceStepMult": 1.5,
+      "marginBonus": 0.1,
+      "talent": {
+        "merchant": 1.6,
+        "innkeeper": 1.2
+      }
+    },
+    {
+      "id": "hardworking",
+      "kind": "temper",
+      "about": "works harder at anything",
+      "outputMult": 1.25
+    },
+    {
+      "id": "lazy",
+      "kind": "temper",
+      "about": "does less at anything",
+      "outputMult": 0.8
+    },
+    {
+      "id": "thrifty",
+      "kind": "temper",
+      "about": "shops around and keeps more food by",
+      "extraVisits": 2,
+      "extraFoodDays": 1
+    },
+    {
+      "id": "stubborn",
+      "kind": "temper",
+      "about": "never changes trade",
+      "jobChangeMult": 0
+    },
+    {
+      "id": "restless",
+      "kind": "temper",
+      "about": "changes trade readily",
+      "jobChangeMult": 2
+    }
   ],
-  "firstNames": ["Ada","Agnes","Alan","Alice","Aldous","Amice","Avelina","Baldwin","Bartholomew","Beatrice","Benedict","Bennet","Cecily","Clement","Constance","Denis","Edith","Edmund","Elias","Emma","Eudo","Felice","Geoffrey","Gilbert","Godfrey","Hawise","Helewise","Henry","Hugh","Isabel","Ivo","Joan","John","Juliana","Lettice","Mabel","Margery","Matilda","Maud","Nicholas","Odo","Petronilla","Philippa","Ralph","Reginald","Richard","Robert","Roger","Rose","Sabina","Simon","Sybil","Thomas","Walter","William","Wymarc"],
-  "familyNames": ["Ashby","Barker","Brewer","Carter","Cooper","Dyer","Fletcher","Fowler","Hayward","Hill","Mason","Miller","Page","Reeve","Sawyer","Shepherd","Thatcher","Turner","Wainwright","Webb","Wood","Wright","Atwell","Bywater","Fenn","Gale","Holt","Lowe","Marsh","Ridley","Stone","Thorne","Underhill","Vane","Warde","Yates","Ford","Croft","Dale","Brook"]
+  "firstNames": [
+    "Ada",
+    "Agnes",
+    "Alan",
+    "Alice",
+    "Aldous",
+    "Amice",
+    "Avelina",
+    "Baldwin",
+    "Bartholomew",
+    "Beatrice",
+    "Benedict",
+    "Bennet",
+    "Cecily",
+    "Clement",
+    "Constance",
+    "Denis",
+    "Edith",
+    "Edmund",
+    "Elias",
+    "Emma",
+    "Eudo",
+    "Felice",
+    "Geoffrey",
+    "Gilbert",
+    "Godfrey",
+    "Hawise",
+    "Helewise",
+    "Henry",
+    "Hugh",
+    "Isabel",
+    "Ivo",
+    "Joan",
+    "John",
+    "Juliana",
+    "Lettice",
+    "Mabel",
+    "Margery",
+    "Matilda",
+    "Maud",
+    "Nicholas",
+    "Odo",
+    "Petronilla",
+    "Philippa",
+    "Ralph",
+    "Reginald",
+    "Richard",
+    "Robert",
+    "Roger",
+    "Rose",
+    "Sabina",
+    "Simon",
+    "Sybil",
+    "Thomas",
+    "Walter",
+    "William",
+    "Wymarc"
+  ],
+  "familyNames": [
+    "Ashby",
+    "Barker",
+    "Brewer",
+    "Carter",
+    "Cooper",
+    "Dyer",
+    "Fletcher",
+    "Fowler",
+    "Hayward",
+    "Hill",
+    "Mason",
+    "Miller",
+    "Page",
+    "Reeve",
+    "Sawyer",
+    "Shepherd",
+    "Thatcher",
+    "Turner",
+    "Wainwright",
+    "Webb",
+    "Wood",
+    "Wright",
+    "Atwell",
+    "Bywater",
+    "Fenn",
+    "Gale",
+    "Holt",
+    "Lowe",
+    "Marsh",
+    "Ridley",
+    "Stone",
+    "Thorne",
+    "Underhill",
+    "Vane",
+    "Warde",
+    "Yates",
+    "Ford",
+    "Croft",
+    "Dale",
+    "Brook"
+  ],
+  "_comment": "Traits people are born with. Everyone has exactly one of the six work traits (kind 'work'): its talent multiplies their output in the trades it names (1.6 is far better than most), and people lean towards trades they have a gift for. Half of people also have a temper trait (kind 'temper'). outputMult scales all their work; priceStepMult and marginBonus shape how merchants price; extraVisits and extraFoodDays how people shop; jobChangeMult how readily they change work. about is shown to the player."
 }

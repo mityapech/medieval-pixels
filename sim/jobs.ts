@@ -1,5 +1,5 @@
 // How people choose work. No rescues: each person compares what trades earn with what they can afford to start.
-import { cheapestMeal, seenPrice, trait } from './agent';
+import { cheapestMeal, seenPrice, talent, trait } from './agent';
 import type { GameData } from './data';
 import { headOf, householdOf, isHead, isWorkingAge, kinOf, livingMembers, takeUpTrade } from './family';
 import { stockOf } from './inventory';
@@ -44,12 +44,38 @@ function net(c: Citizen): number {
   return c.coins - (c.coinHistory[0] ?? c.coins);
 }
 
-/** The best-earning trade this person can afford to start, other than the one they have. */
-function bestAffordable(world: World, data: GameData, c: Citizen, typical: Record<Trade, number>): Trade | undefined {
-  const reserve = data.town.reserveDays * cheapestMeal(data, c);
-  return TRADES.filter((t) => t !== c.trade && entryCost(data, c, t) + (entryCost(data, c, t) > 0 ? reserve : 0) <= c.coins)
-    .sort((a, b) => typical[b] - typical[a])[0];
+/** A trade's standing: 0 labour, 1 a craft, 2 trade. */
+export function rankOf(data: GameData, t: Trade | null): number {
+  return t ? data.town.trades[t].rank : 0;
 }
+
+/**
+ * Whether someone's family is well off: it owns property beyond its own home, or has coins to spare for every member.
+ * Such families do not send their people down into labour.
+ */
+export function genteel(world: World, data: GameData, c: Citizen): boolean {
+  const members = livingMembers(world, householdOf(world, c));
+  const purse = members.reduce((s, m) => s + m.coins, 0);
+  if (purse >= data.town.jobChange.genteelCoinsPerMember * members.length) return true;
+  const ids = new Set(members.map((m) => m.id));
+  return Object.entries(world.property).some(([k, p]) => p.owner !== null && ids.has(p.owner) && k !== `home:${c.householdId}`);
+}
+
+/** What a trade seems worth to this person: what others earn at it, more if they have a gift for it, less if not. */
+function worth(data: GameData, c: Citizen, t: Trade, typical: Record<Trade, number>): number {
+  const tal = talent(data, c, t);
+  const v = typical[t] >= 0 ? typical[t] * tal : typical[t] / tal;
+  return v + (tal - 1) * data.town.jobChange.talentWeight * 4 * data.town.jobChange.minGain;
+}
+
+/** The trade this person would most like and can afford to start, other than the one they have. */
+function bestAffordable(world: World, data: GameData, c: Citizen, typical: Record<Trade, number>, allowed: (t: Trade) => boolean = () => true): Trade | undefined {
+  const reserve = data.town.reserveDays * cheapestMeal(data, c);
+  return TRADES.filter((t) => t !== c.trade && allowed(t) && entryCost(data, c, t) + (entryCost(data, c, t) > 0 ? reserve : 0) <= c.coins)
+    .sort((a, b) => worth(data, c, b, typical) - worth(data, c, a, typical))[0];
+}
+
+const gifted = (data: GameData, c: Citizen, t: Trade) => (talent(data, c, t) >= 1.3 ? '; a natural at it' : '');
 
 /** A household is struggling when it cannot cover a few days of food from the head's purse, or someone is hungry or cold. */
 export function householdStruggling(world: World, data: GameData, c: Citizen): boolean {
@@ -72,12 +98,14 @@ export function findWork(world: World, data: GameData): JobChange[] {
     if (!c.alive || c.trade || c.office || !isWorkingAge(data, c)) continue;
     const typical = knownEarnings(world, data, c);
     const struggling = householdStruggling(world, data, c);
-    const to = bestAffordable(world, data, c, typical);
+    // A well-off family's son or daughter takes up a craft or trade, not labour.
+    const proud = !struggling && genteel(world, data, c);
+    const to = bestAffordable(world, data, c, typical, (t) => !proud || rankOf(data, t) > 0);
     if (!to) continue;
     const tempting = typical[to] >= 4 * jobChange.minGain && random(world) < jobChange.chance / jobChange.everyDays;
     if (!struggling && !tempting) continue;
     takeUpTrade(data, c, to);
-    changes.push({ id: c.id, name: c.name, from: null, to, reason: struggling ? 'household short of money' : `${to}s are doing well` });
+    changes.push({ id: c.id, name: c.name, from: null, to, reason: (struggling ? 'household short of money' : `${to}s are doing well`) + gifted(data, c, to) });
   }
   return changes;
 }
@@ -92,7 +120,10 @@ export function reconsiderWork(world: World, data: GameData): JobChange[] {
   for (const c of world.citizens) {
     // People judge their trade over a full week; nobody changes in their first week at it.
     if (!c.alive || c.coinHistory.length < data.town.jobChange.judgeOverDays) continue;
-    if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult')) continue;
+    // Labourers have little to fall back on and change work less often, unless they are losing money.
+    const labourer = !c.office && c.trade !== null && rankOf(data, c.trade) === 0;
+    const stuck = labourer ? (net(c) < 0 ? Math.max(0.6, jobChange.labourerChangeMult) : jobChange.labourerChangeMult) : 1;
+    if (random(world) >= jobChange.chance * trait(data, c, 'jobChangeMult') * stuck) continue;
     const typical = knownEarnings(world, data, c);
     // Servants and other post-holders go back to a trade when one clearly pays better than their wage.
     if (c.office) {
@@ -117,17 +148,20 @@ export function reconsiderWork(world: World, data: GameData): JobChange[] {
       changes.push({ id: c.id, name: c.name, from, to: null, reason: 'household can afford it' });
       continue;
     }
-    const to = bestAffordable(world, data, c, typical);
-    if (!to) continue;
-    // Moving up needs a big, clear gap; people do not abandon a living trade for a small edge.
-    const gain = typical[to] - Math.max(typical[from], mine);
     const losing = mine < 0;
-    if (gain < jobChange.minGain) continue;
-    if (!losing && (typical[to] < 2 * Math.max(mine, typical[from], jobChange.minGain) || gain < 4 * jobChange.minGain)) continue;
+    // Nobody goes down in the world lightly: only when losing money, and a well-off family not until it struggles.
+    const proud = genteel(world, data, c) && !householdStruggling(world, data, c);
+    const to = bestAffordable(world, data, c, typical, (t) => rankOf(data, t) >= rankOf(data, from) || (losing && !proud));
+    if (!to) continue;
+    // Moving up needs a big, clear gap, bigger for each rank climbed; people do not abandon a living trade for a small edge.
+    const need = jobChange.minGain * jobChange.climbGainMult ** Math.max(0, rankOf(data, to) - rankOf(data, from));
+    const gain = worth(data, c, to, typical) - Math.max(typical[from], mine);
+    if (gain < need) continue;
+    if (!losing && (worth(data, c, to, typical) < 2 * Math.max(mine, typical[from], need) || gain < 4 * need)) continue;
     takeUpTrade(data, c, to);
-    const reason = losing
+    const reason = (losing
       ? entryCost(data, c, to) === 0 ? 'losing money; takes work with no start-up cost' : 'losing money; another trade pays better'
-      : `doing well enough to move up (week: ${mine} vs ${typical[to]} typical)`;
+      : `doing well enough to move up (week: ${mine} vs ${typical[to]} typical)`) + gifted(data, c, to);
     changes.push({ id: c.id, name: c.name, from, to, reason });
   }
   return changes;

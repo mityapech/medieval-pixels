@@ -4,7 +4,7 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
-  cheapestMeal, compact, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
+  cheapestMeal, talent, compact, ensureWorkTraits, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
   type Conversation, type DayReport, type Doctrine,
 } from '../../sim/index';
 import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
@@ -24,6 +24,7 @@ const saved = playing ? savedTown() : undefined;
 const backdrop = saved ? undefined : backdropTown(data);
 const world = saved?.world ?? backdrop!.world;
 const townName = saved?.name ?? backdrop!.name;
+ensureWorkTraits(world, data);
 const onTitle = !saved;
 const places = layoutTown(world);
 const life = new Life(world, data, places);
@@ -817,7 +818,11 @@ function inspectCitizen(c: Citizen): void {
     facts([
       ['Age', `${c.age}`],
       ['Work', job + (world.mayor?.id === c.id ? `; mayor (${doctrineName(world.mayor.doctrine)})` : '')],
-      ['Traits', c.traits.join(', ')],
+      ['Traits', c.traits.map((id) => {
+        const gifts = Object.entries(data.traits.get(id)?.talent ?? {}).filter(([, m]) => m > 1).map(([t]) => t);
+        return gifts.length ? `${id} (gifted ${gifts.join(', ')})` : id;
+      }).join('; ')],
+      ...(c.trade ? [['At their work', fit(talent(data, c, c.trade))] as [string, string]] : []),
       ['Household', `${hh.family} (${members.length} living)${hh.headId === c.id ? ', head' : ''}`],
       ['Coins', `${c.coins} (household ${purse})`],
       ['Worries', worries.join('; ') || 'none pressing'],
@@ -882,6 +887,11 @@ function inspectCitizen(c: Citizen): void {
     body.append(ul);
   }
   panel.hidden = false;
+}
+
+/** How well someone suits their trade, from their traits. */
+function fit(m: number): string {
+  return m >= 1.5 ? `a natural (+${Math.round((m - 1) * 100)}%)` : m > 1 ? `gifted (+${Math.round((m - 1) * 100)}%)` : m < 1 ? `poorly suited (${Math.round((m - 1) * 100)}%)` : 'ordinary';
 }
 
 /** The player used a power: it goes in the town news, and the town is redrawn (names and homes may have changed). */

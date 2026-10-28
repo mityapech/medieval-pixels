@@ -1,5 +1,5 @@
 // Builds the starting town: about 60 people in households of mixed shapes, with kin spread across them.
-import { foodTarget } from './agent';
+import { foodTarget, talent } from './agent';
 import { totalCoins } from './coins';
 import { HEAVENS_PURSE } from './god';
 import { initialBuildings } from './construction';
@@ -12,7 +12,6 @@ import { pick, random, randomInt, shuffle } from './rng';
 import type { BatchId, Citizen, GoodId, Holder, Household, Trade, World } from './types';
 import { TRADES } from './types';
 
-const EXCLUSIVE_TRAITS = [['hardworking', 'lazy'], ['stubborn', 'restless']];
 
 export function createWorld(data: GameData, seed = 1): World {
   const world: World = {
@@ -70,8 +69,24 @@ export function createWorld(data: GameData, seed = 1): World {
   const counts = new Map<Trade, number>(quotas.map((q) => [q.t, Math.floor(q.exact)]));
   let left = workers.length - [...counts.values()].reduce((a, b) => a + b, 0);
   for (const q of [...quotas].sort((a, b) => (b.exact % 1) - (a.exact % 1))) if (left-- > 0) counts.set(q.t, counts.get(q.t)! + 1);
-  let next = 0;
-  for (const t of TRADES) for (let i = 0; i < counts.get(t)!; i++) workers[next++]!.trade = t;
+  // People with a gift for a trade take it up first; the rest are shared out, keeping people from trades they are poor at.
+  let pool = [...workers];
+  const slots = new Map(counts);
+  for (const t of shuffle(world, [...TRADES])) {
+    for (const c of pool.filter((x) => talent(data, x, t) > 1)) {
+      if (!slots.get(t)) break;
+      c.trade = t;
+      slots.set(t, slots.get(t)! - 1);
+    }
+    pool = pool.filter((x) => !x.trade);
+  }
+  for (const t of TRADES) {
+    for (let i = 0; i < slots.get(t)!; i++) {
+      const best = pool.reduce((a, b) => (talent(data, b, t) > talent(data, a, t) ? b : a));
+      best.trade = t;
+      pool = pool.filter((x) => x !== best);
+    }
+  }
 
   for (const c of world.citizens) {
     const ageGroup = c.age < town.workingAge.adult ? 'child' : c.age >= town.workingAge.elder ? 'elder' : 'adult';
@@ -230,14 +245,20 @@ export function newCitizen(
   return c;
 }
 
-function rollTraits(world: World, data: GameData): string[] {
-  const ids = [...data.traits.keys()];
-  const traits = [pick(world, ids)];
-  if (random(world) < 0.5) {
-    const second = pick(world, ids);
-    const clash = second === traits[0] || EXCLUSIVE_TRAITS.some((pair) => pair.includes(second) && pair.includes(traits[0]!));
-    if (!clash) traits.push(second);
+/** A town saved before work traits existed: everyone without one is given one (chosen by their id, not the dice). */
+export function ensureWorkTraits(world: World, data: GameData): void {
+  const work = [...data.traits.values()].filter((t) => t.kind === 'work').map((t) => t.id);
+  for (const c of world.citizens) {
+    c.traits = c.traits.filter((t) => data.traits.has(t));
+    if (!c.traits.some((t) => work.includes(t))) c.traits.unshift(work[(c.id * 7919) % work.length]!);
   }
+}
+
+function rollTraits(world: World, data: GameData): string[] {
+  // Everyone has one of the six work traits; half also have a temper.
+  const of = (kind: string) => [...data.traits.values()].filter((t) => t.kind === kind).map((t) => t.id);
+  const traits = [pick(world, of('work'))];
+  if (random(world) < 0.5) traits.push(pick(world, of('temper')));
   return traits;
 }
 

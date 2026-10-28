@@ -2,7 +2,7 @@
 // see every offer. Merchants are the ones who walk out to producers and to other towns.
 import {
   cheapestMeal, foodReserveCoins, foodStock, foodTarget, householdNeedTarget, householdSize, isFood, makesGood, observePrice, recipesOf,
-  seenPrice, sellableQty, shopsForSelf, traitSum, trait,
+  seenPrice, sellableQty, shopsForSelf, talent, traitSum, trait,
 } from './agent';
 import { transfer } from './coins';
 import { remember } from './memory';
@@ -231,7 +231,8 @@ function merchantRounds(world: World, data: GameData, m: Citizen, tally: DayTall
   const room = () => (cfg.carryCapacity ?? 0) - m.inventory.reduce((w, l) => w + l.qty * data.goods.get(l.good)!.weight, 0);
   const budget = () => Math.max(0, (m.coins - reserve) * pricing.merchantRiskShare);
   const producers = shuffle(world, world.citizens.filter((c) => c.alive && c.trade && c.trade !== 'merchant'));
-  const visits = (cfg.visitsPerDay ?? 0) + traitSum(data, m, 'extraVisits');
+  // A natural trader gets round more of the town's producers in a day.
+  const visits = Math.round(((cfg.visitsPerDay ?? 0) + traitSum(data, m, 'extraVisits')) * talent(data, m, 'merchant'));
   m.today.visited = Math.min(visits, producers.length);
   for (const seller of producers.slice(0, visits)) {
     for (const good of Object.keys(seller.prices)) {

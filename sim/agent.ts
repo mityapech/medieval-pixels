@@ -3,11 +3,18 @@ import type { GameData } from './data';
 import { stockOf } from './inventory';
 import { householdNeedMult } from './events';
 import { householdOf, isHead, livingMembers } from './family';
-import type { Citizen, GoodId, RecipeDef, World } from './types';
+import type { Citizen, GoodId, RecipeDef, Trade, World } from './types';
 
 export function trait(data: GameData, c: Citizen, key: 'outputMult' | 'priceStepMult' | 'jobChangeMult'): number {
   let m = 1;
   for (const id of c.traits) m *= data.traits.get(id)?.[key] ?? 1;
+  return m;
+}
+
+/** How good someone is at a trade, from their traits: 1 for most, above 1 for a natural, below 1 for a poor fit. */
+export function talent(data: GameData, c: Citizen, trade: Trade | null): number {
+  let m = 1;
+  if (trade) for (const id of c.traits) m *= data.traits.get(id)?.talent?.[trade] ?? 1;
   return m;
 }
 
