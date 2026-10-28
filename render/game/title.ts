@@ -16,7 +16,7 @@ export interface Settings {
   /** Show what people near you are doing, and their progress bars. */
   taskLabels: boolean;
 }
-const DEFAULTS: Settings = { dayMinutes: 4, startSpeed: 1, taskLabels: true };
+const DEFAULTS: Settings = { dayMinutes: 15, startSpeed: 1, taskLabels: true };
 
 export function loadSettings(): Settings {
   try {

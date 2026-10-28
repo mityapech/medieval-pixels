@@ -38,7 +38,6 @@ let DAY_MS = settings.dayMinutes * 60 * 1000;
 // The title screen's timelapse runs fast; playing starts at the speed chosen in settings.
 let speed = onTitle ? 30 : settings.startSpeed;
 let clock = saved?.clock ?? 0.25; // fraction of the day; the town wakes at 06:00
-const HEARING = 7 * TILE;
 
 function phase(t: number): 'night' | 'morning' | 'work' | 'market' | 'evening' {
   if (t < 0.25) return 'night';
@@ -166,7 +165,7 @@ function drawPlaces(): void {
     }
     g.eventMode = 'static';
     g.cursor = 'pointer';
-    g.on('pointertap', () => inspectPlace(p));
+    g.on('pointertap', () => { if (!dragged) inspectPlace(p); });
     const bright = ((colour >> 16) & 255) * 0.3 + ((colour >> 8) & 255) * 0.59 + (colour & 255) * 0.11;
     const t = label(p.label, p.sprite === 'house' || p.sprite === 'townhouse' || p.sprite === 'site' ? 9 : 12, bright < 120 ? 0xf3ead8 : 0x1a1a19);
     t.position.set(p.x * TILE + 6, p.y * TILE + 5);
@@ -186,7 +185,7 @@ function addWalkers(): void {
     const g = new Graphics();
     g.eventMode = 'static';
     g.cursor = 'pointer';
-    g.on('pointertap', (e) => { e.stopPropagation(); inspectCitizen(c); });
+    g.on('pointertap', (e) => { e.stopPropagation(); if (!dragged) inspectCitizen(c); });
     peopleLayer.addChild(g);
     walkers.set(c.id, { c, g, x: home.x, y: home.y });
   }
@@ -195,7 +194,7 @@ addWalkers();
 
 /** What someone is doing, shown over their head when they are near the observer. */
 function showTag(w: Walker, task: string | undefined): void {
-  const near = settings.taskLabels && !onTitle && task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
+  const near = settings.taskLabels && !onTitle && task && zoom >= CLOSE && inView(w.x, w.y);
   if (!near) { if (w.tag) w.tag.visible = false; return; }
   if (!w.tag) {
     w.tag = new Text({ text: '', style: { fontFamily: MAP_FONT, fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3, join: 'round' }, padding: 6 }, resolution: 3 });
@@ -214,7 +213,7 @@ if (import.meta.env.DEV) (window as unknown as { townWalkers: typeof walkers }).
 interface Floater { t: Text; start: number; x: number; y: number }
 let floaters: Floater[] = [];
 function floatUp(w: Walker, text: string): void {
-  if (Math.hypot(w.x - observer.x, w.y - observer.y) > HEARING * 2) return;
+  if (zoom < CLOSE || !inView(w.x, w.y)) return;
   const t = new Text({ text, style: { fontFamily: MAP_FONT, fontSize: 11, fontWeight: 'bold', fill: 0xffe08a, stroke: { color: 0x1a1a19, width: 3, join: 'round' }, padding: 6 }, resolution: 3 });
   t.anchor.set(0.5, 1);
   bubbleLayer.addChild(t);
@@ -259,13 +258,55 @@ function drawWalker(w: Walker, progress?: number): void {
   w.g.position.set(w.x, w.y);
 }
 
-// The observer stands in for the player until the player milestone: walk around and overhear people.
+// The camera: you watch from above like a god, not as someone in the town. Drag or W A S D to move, scroll to zoom.
+// What is on screen when you are zoomed in close enough is what you hear: conversations, cries and task labels.
 const observer = centre(places.get('market')!);
 if (import.meta.env.DEV) (window as unknown as { townObserver: typeof observer }).townObserver = observer;
-const observerG = new Graphics();
-const hearingG = new Graphics().circle(0, 0, HEARING).fill({ color: 0xffffff, alpha: 0.07 }).stroke({ width: 1, color: 0xffffff, alpha: 0.35 });
-peopleLayer.addChild(hearingG, observerG);
-observerG.rect(-7, -7, 14, 14).fill(0xffffff).stroke({ width: 3, color: 0x0b0b0b });
+let zoom = innerWidth >= 1600 ? 2 : 1.5;
+const ZOOM = { min: 0.4, max: 4 };
+/** Zoomed in this far, you can hear people and read what they are doing. */
+const CLOSE = 1.25;
+function setZoom(z: number, at?: { x: number; y: number }): void {
+  const next = Math.min(ZOOM.max, Math.max(ZOOM.min, z));
+  // Keep the point under the cursor still while zooming.
+  if (at) {
+    const wx = observer.x + (at.x - app.screen.width / 2) / zoom;
+    const wy = observer.y + (at.y - app.screen.height / 2) / zoom;
+    observer.x = wx - (at.x - app.screen.width / 2) / next;
+    observer.y = wy - (at.y - app.screen.height / 2) / next;
+  }
+  zoom = next;
+}
+/** Whether a point on the map is on screen (with a margin, in screen pixels). */
+function inView(x: number, y: number, margin = 0): boolean {
+  return Math.abs(x - observer.x) * zoom <= app.screen.width / 2 + margin && Math.abs(y - observer.y) * zoom <= app.screen.height / 2 + margin;
+}
+// Dragging the map moves the camera; a drag is not a click on whoever is under the pointer.
+let drag: { x: number; y: number; ox: number; oy: number } | undefined;
+let dragged = false;
+app.canvas.style.cursor = 'grab';
+app.canvas.addEventListener('pointerdown', (e) => {
+  if (onTitle || e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY, ox: observer.x, oy: observer.y };
+  dragged = false;
+});
+addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x;
+  const dy = e.clientY - drag.y;
+  if (!dragged && Math.hypot(dx, dy) < 5) return;
+  dragged = true;
+  app.canvas.style.cursor = 'grabbing';
+  observer.x = drag.ox - dx / zoom;
+  observer.y = drag.oy - dy / zoom;
+});
+addEventListener('pointerup', () => { drag = undefined; app.canvas.style.cursor = 'grab'; });
+app.canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (onTitle) return;
+  const r = app.canvas.getBoundingClientRect();
+  setZoom(zoom * Math.exp(-e.deltaY * 0.0015), { x: e.clientX - r.left, y: e.clientY - r.top });
+}, { passive: false });
 
 // ---------- where people want to be ----------
 
@@ -376,7 +417,7 @@ function cryWares(): void {
     if (k.shown || clock < k.start) continue;
     k.shown = true;
     const w = walkers.get(k.a.merchant);
-    if (!w || Math.hypot(w.x - observer.x, w.y - observer.y) > HEARING) continue;
+    if (!w || zoom < CLOSE || !inView(w.x, w.y)) continue;
     say(w.c, k.a.text, 0);
   }
 }
@@ -542,16 +583,12 @@ const keys = new Set<string>();
 addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement).closest('input, select, textarea')) return;
   keys.add(e.key.toLowerCase());
-  if (e.key === '+' || e.key === '=') setZoom(zoom + 1);
-  if (e.key === '-' || e.key === '_') setZoom(zoom - 1);
+  if (e.key === '+' || e.key === '=') setZoom(zoom * 1.25);
+  if (e.key === '-' || e.key === '_') setZoom(zoom / 1.25);
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 
-let zoom = innerWidth >= 1600 ? 2 : 1;
-function setZoom(z: number): void {
-  zoom = Math.min(3, Math.max(1, z)); // integer zoom keeps pixels sharp
-}
 
 app.ticker.add((t) => {
   // Real elapsed time (Pixi's deltaMS is capped at low frame rates, which would slow the in-game clock).
@@ -567,16 +604,14 @@ app.ticker.add((t) => {
     observer.x = m.x + Math.cos(a) * MAP_W * TILE * 0.18;
     observer.y = m.y + Math.sin(a * 0.8) * MAP_H * TILE * 0.14;
   }
-  // Observer walks at the same speed whatever the game speed.
-  const step = onTitle ? 0 : 0.25 * dt;
+  // The camera pans at the same speed on screen whatever the zoom and game speed.
+  const step = onTitle ? 0 : (0.6 * dt) / zoom;
   if (keys.has('w') || keys.has('arrowup')) observer.y -= step;
   if (keys.has('s') || keys.has('arrowdown')) observer.y += step;
   if (keys.has('a') || keys.has('arrowleft')) observer.x -= step;
   if (keys.has('d') || keys.has('arrowright')) observer.x += step;
   observer.x = Math.min(MAP_W * TILE, Math.max(0, observer.x));
   observer.y = Math.min(MAP_H * TILE, Math.max(0, observer.y));
-  observerG.position.set(observer.x, observer.y);
-  hearingG.position.set(observer.x, observer.y);
 
   // Everyone moves a step towards where they want to be (see Life.move).
   const now = performance.now();
@@ -624,7 +659,7 @@ app.ticker.add((t) => {
     if (k.shown || clock < k.start) continue;
     k.shown = true;
     const at = centre(k.place);
-    if (Math.hypot(at.x - observer.x, at.y - observer.y) <= HEARING + Math.max(k.place.w, k.place.h) * TILE / 2) overhear(k);
+    if (zoom >= CLOSE && inView(at.x, at.y, Math.max(k.place.w, k.place.h) * TILE * zoom / 2)) overhear(k);
   }
     bubbles = bubbles.filter((b) => {
     if (now > b.until) { b.box.destroy({ children: true }); return false; }
@@ -653,6 +688,16 @@ function setSpeed(s: number): void {
   document.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === s)));
 }
 document.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => b.addEventListener('click', () => setSpeed(Number(b.dataset.speed))));
+/** How long a day lasts at each speed, on the speed buttons (it follows the day length in Settings). */
+function speedTitles(): void {
+  document.querySelectorAll<HTMLButtonElement>('.speed button').forEach((b) => {
+    const s = Number(b.dataset.speed);
+    if (!s) return;
+    const secs = DAY_MS / 1000 / s;
+    b.title = `1 day = ${secs >= 120 ? `${Math.round(secs / 60)} minutes` : `${Math.round(secs)} seconds`}`;
+  });
+}
+speedTitles();
 setSpeed(speed);
 
 function refreshMoney(): void {
@@ -696,7 +741,7 @@ document.getElementById('menu')!.addEventListener('click', () => {
   setSpeed(0);
   showTitle(data, {
     onResume: () => setSpeed(before),
-    onSettings: (next) => { settings = next; DAY_MS = settings.dayMinutes * 60 * 1000; },
+    onSettings: (next) => { settings = next; DAY_MS = settings.dayMinutes * 60 * 1000; speedTitles(); },
   });
 });
 
@@ -1037,8 +1082,6 @@ if (world.day === 0) { newDay(); clock = 0.25; } else { startDay(world.reports.a
 document.getElementById('town-name')!.textContent = townName;
 if (onTitle) {
   showTitle(data);
-  observerG.visible = false;
-  hearingG.visible = false;
 } else {
   document.getElementById('title')!.hidden = true;
   document.body.classList.remove('on-title');

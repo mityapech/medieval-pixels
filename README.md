@@ -28,16 +28,16 @@ the same day. Founding a new town replaces the old one, so stay with the one you
 
 | | |
 |---|---|
-| **Walk around** | `W` `A` `S` `D` or the arrow keys |
-| **Zoom** | `+` and `−` |
-| **Speed** | **Pause**, **1×**, **10×**, **60×** at the top (at 1×, a day lasts about 4 minutes) |
+| **Look around** | Drag the map, or `W` `A` `S` `D` / the arrow keys. You watch from above, like a god |
+| **Zoom** | Scroll wheel (or `+` and `−`). Zoom in close to hear conversations and see what people are doing |
+| **Speed** | **Pause**, **1×**, **10×**, **60×** at the top (at 1×, a day lasts 15 minutes; change it in Settings) |
 | **Skip to tomorrow** | **Step one day** |
 | **See who someone is** | Click a person: their family, job, coins, worries and today's work |
 | **See a building** | Click it: who owns it and what it is. Click the **Town Hall** for the mayor's office |
 | **Who owns what** | Click a landowner: every building they hold, who lives or works there, what each brings in a day and is worth |
 | **Where did this come from?** | In a person's details, click something they own to trace who made it |
 | **Everyone in town** | **People** |
-| **What's happening** | Bottom left: **Overheard nearby** (conversations near you), **Town news**, **Market notices** |
+| **What's happening** | Bottom left: **Overheard nearby** (conversations where you are looking), **Town news**, **Market notices** |
 | **Charts and history** | **Ledger**: your town's population, wealth, prices and production since its founding |
 | **Politics** | **Town Hall**: the mayor, their party, what they changed, their decrees, past mayors |
 | **Elections** | Watch it live: candidates campaign at the market, voters walk in, the bars fill, the winner is cheered |
@@ -53,7 +53,7 @@ well-off families would rather stay merchants and burghers than go back to labou
 Coins you give with ✦ Powers come from the heavens' purse (50,000 coins), and coins you take go back to it: no coin
 is ever created or destroyed, even by you.
 
-Tips: people near you show what they are doing over their heads, with a bar for how far along they are. When
+Tips: zoomed in, people on screen show what they are doing over their heads, with a bar for how far along they are. When
 someone finishes a job, what they made floats up (`+5 bread`). Try **10×** speed to watch a whole day go by.
 
 ---
