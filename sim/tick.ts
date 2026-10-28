@@ -59,7 +59,12 @@ export function tick(world: World, data: GameData): DayReport {
     if (!j.from && j.to) remember(world, c, 'started_work', { to: j.to });
     else if (j.from && j.to) remember(world, c, 'changed_job', { from: j.from, to: j.to });
   }
-  if (world.day % data.town.authority.reviewEveryDays === 0) familyEvents.push(...reviewPosts(world, data), ...hireServants(world, data));
+  if (world.day % data.town.authority.reviewEveryDays === 0) {
+    const posts = reviewPosts(world, data);
+    // Hiring and letting go of the town's guards, priests, teachers and healers is the mayor's administration at work.
+    if (world.mayor) for (const text of posts) world.decrees.push({ day: world.day, mayor: world.mayor.id, text });
+    familyEvents.push(...posts, ...hireServants(world, data));
+  }
 
   const health = healthDay(world, data, familyEvents);
   const tavernGoers = tavernEvening(world, data, tally);
@@ -111,7 +116,11 @@ export function tick(world: World, data: GameData): DayReport {
     propertySales: property.sales,
     fortune,
     mayor: world.mayor ? { id: world.mayor.id, name: world.citizens[world.mayor.id]!.name, doctrine: world.mayor.doctrine } : null,
-    election: politics.election ? { candidates: politics.election.candidates, votes: politics.election.votes, winner: politics.election.winner } : undefined,
+    election: politics.election ? { candidates: politics.election.candidates, votes: politics.election.votes, winner: politics.election.winner, ballots: politics.election.ballots } : undefined,
+    campaign: world.campaign && world.mayor ? {
+      candidates: world.campaign.candidates.map((x) => ({ id: x.id, name: world.citizens[x.id]!.name, doctrine: x.doctrine })),
+      electionDay: world.mayor.termEnds,
+    } : undefined,
     rentPaid: property.rentPaid,
     starved: starved.map((c) => ({ id: c.id, name: c.name })),
     jobChanges,

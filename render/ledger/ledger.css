@@ -1,0 +1,132 @@
+/* Town Ledger panel: chart tokens follow the validated reference palette (dataviz skill), light and dark selected separately.
+   Everything is scoped to .ledger so it cannot affect the game screen. */
+.ledger {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --event-band: rgba(137, 135, 129, 0.1);
+  --accent: #2a78d6;
+  --good: #006300;
+  --critical: #d03b3b;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) .ledger {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --event-band: rgba(195, 194, 183, 0.08);
+    --accent: #3987e5;
+    --good: #0ca30c;
+    --critical: #d03b3b;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+:root[data-theme='dark'] .ledger {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --event-band: rgba(195, 194, 183, 0.08);
+  --accent: #3987e5;
+  --good: #0ca30c;
+  --critical: #d03b3b;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+.ledger {
+  position: fixed; inset: 0; z-index: 30; overflow: auto;
+  background: var(--page); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  padding: 24px max(16px, calc((100vw - 1280px) / 2)) 48px;
+}
+.ledger * { box-sizing: border-box; }
+.ledger h1 { font-size: 22px; margin: 0 0 2px; font-weight: 650; }
+.ledger h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.ledger .sub { margin: 0; color: var(--text-secondary); }
+.ledger code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.ledger .masthead { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.ledger .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ledger .controls label { display: flex; gap: 6px; align-items: center; color: var(--text-secondary); }
+.ledger .controls input, .ledger .controls select {
+  width: 84px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface-1); color: var(--text-primary); font: inherit;
+}
+.ledger button {
+  padding: 6px 14px; border-radius: 6px; border: 1px solid transparent; font: inherit; font-weight: 600;
+  background: var(--accent); color: #fff; cursor: pointer;
+}
+.ledger button.ghost { background: transparent; color: var(--text-primary); border-color: var(--border); }
+.ledger button:focus-visible, .ledger input:focus-visible, .ledger select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ledger .status { color: var(--text-muted); min-width: 120px; }
+
+.ledger .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.ledger .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.ledger .tile .label { color: var(--text-secondary); font-size: 12px; }
+.ledger .tile .value { font-size: 24px; font-weight: 650; margin-top: 2px; }
+.ledger .tile .note { color: var(--text-muted); font-size: 12px; }
+.ledger .tile .note.up { color: var(--good); }
+.ledger .tile .note.down { color: var(--critical); }
+
+.ledger .events { margin-bottom: 16px; }
+.ledger .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 8px 0 0; }
+.ledger .chips li { border: 1px solid var(--border); background: var(--surface-1); border-radius: 999px; padding: 2px 10px; color: var(--text-secondary); font-size: 12px; }
+.ledger .chips li b { color: var(--text-primary); font-weight: 600; }
+
+.ledger .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 16px; }
+.ledger .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 10px; min-width: 0; }
+.ledger .card header { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.ledger .card .what { color: var(--text-muted); font-size: 12px; margin: 2px 0 0; }
+.ledger .card .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.ledger .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.ledger .seg button, .ledger .card .tools > button {
+  background: transparent; color: var(--text-secondary); border: 0; border-radius: 0; padding: 3px 10px; font-weight: 500; font-size: 12px;
+}
+.ledger .card .tools > button { border: 1px solid var(--border); border-radius: 6px; }
+.ledger .seg button[aria-pressed='true'] { background: var(--grid); color: var(--text-primary); font-weight: 600; }
+.ledger .plot { position: relative; height: 260px; }
+.ledger .table-wrap { max-height: 260px; overflow: auto; border-top: 1px solid var(--grid); margin-top: 6px; }
+.ledger table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ledger th, .ledger td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+.ledger th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 600; }
+.ledger th:first-child, .ledger td:first-child { text-align: left; }
+.ledger [hidden] { display: none !important; }

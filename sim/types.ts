@@ -552,7 +552,15 @@ export interface DayReport {
   fortune: Fortune;
   mayor: { id: CitizenId; name: string; doctrine: Doctrine } | null;
   /** An election held today: candidates, votes and the winner. */
-  election?: { candidates: { id: CitizenId; name: string; doctrine: Doctrine }[]; votes: Record<number, number>; winner: CitizenId };
+  election?: {
+    candidates: { id: CitizenId; name: string; doctrine: Doctrine }[];
+    votes: Record<number, number>;
+    winner: CitizenId;
+    /** Every voter's choice (voter id to candidate id), so the vote can be shown as it happens. */
+    ballots: Record<number, number>;
+  };
+  /** A campaign is under way (from a few days before an election until it). */
+  campaign?: { candidates: { id: CitizenId; name: string; doctrine: Doctrine }[]; electionDay: number };
   /** Sales of property today: what, who to whom, and the price. */
   propertySales: string[];
   /** Rent and site fees paid today. */
@@ -585,6 +593,10 @@ export interface World {
   /** The mayor in office and the doctrine they govern by (see sim/politics.ts). */
   mayor?: { id: CitizenId; doctrine: Doctrine; since: number; termEnds: number };
   elections: { day: number; mayor: CitizenId; doctrine: Doctrine }[];
+  /** What mayors have decreed and done, newest last. */
+  decrees: { day: number; mayor: CitizenId; text: string }[];
+  /** The campaign before the next election: who is standing, from which day. */
+  campaign?: { from: number; candidates: { id: CitizenId; doctrine: Doctrine }[] };
   /** People alive at the founding, to measure growth against. */
   foundingPopulation: number;
   /** Who owns every building and site (see sim/property.ts). */
@@ -596,6 +608,8 @@ export interface World {
   /** Condition of each building (0 ruined, 100 new), by place key. See sim/construction.ts. */
   buildings: Record<string, { condition: number }>;
   treasury: Account;
+  /** The player's purse (see sim/god.ts): coins given to people come from it and coins taken go back to it. */
+  heavens: Account;
   /** The town's public store of grain and vegetables, bought cheaply in good times and sold at cost in a shortage. */
   granary: Holder;
   church: Account;

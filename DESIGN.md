@@ -250,6 +250,16 @@ Built in `sim/property.ts` (with `sim/construction.ts` and `sim/land.ts`). Setti
 - Can take any trade, buy and sell goods, buy land, build, and rent property.
 - The player uses the same rules as NPCs. No special prices or shortcuts.
 
+Until then the player watches one town, saved in the browser (`sim/save.ts`; old records are trimmed daily so a
+town played for years stays small), and holds a god's powers over its people (`sim/god.ts`): rename people and
+families, set a person's coins, marry or part a couple, move someone to another household, choose a household's
+head. Coins still only move by `transfer()`: gifts come from the **heavens**, an account holding 50,000 coins at
+the founding and counted in the world's total, and coins taken go back to it.
+
+Elections are watched live: the campaign's candidates speak at the market each afternoon; on election day each
+voter walks to the market to cast the ballot the simulation already recorded (`DayReport.election.ballots`), the
+count fills as they arrive, and the winner is announced at about 17:15.
+
 ## 10. Build order
 
 1. **Goods economy**, no land yet. 60 NPCs, five trades, run from the terminal. *(Done.)*

@@ -326,7 +326,8 @@ function housePeople(world: World, data: GameData): string[] {
   return events;
 }
 
-function moveOut(world: World, c: Citizen, to: Household): void {
+/** Moves someone to another household; if they headed the old one, its eldest remaining member takes over. */
+export function moveOut(world: World, c: Citizen, to: Household): void {
   const from = householdOf(world, c);
   from.memberIds = from.memberIds.filter((id) => id !== c.id);
   to.memberIds.push(c.id);

@@ -1,15 +1,17 @@
-// Town Ledger: runs the simulation in the browser and charts the town over time.
-// Reads only what sim/index.ts exports; nothing here changes the simulation.
+// Town Ledger: charts your town's history day by day, from the reports the simulation writes as you play.
+// A panel inside the game; it reads only what sim/index.ts exports and never changes the simulation.
 import Chart from 'chart.js/auto';
 import type { Plugin } from 'chart.js';
-import { createWorld, loadData, runDays, type DayReport, type Doctrine, type World } from '../../sim/index';
+import { loadData, type DayReport, type Doctrine, type World } from '../../sim/index';
 
 const data = loadData();
+let root: HTMLElement;
+const $ = (id: string) => root.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 
 // ---------- colours from the CSS tokens (re-read when the theme changes) ----------
 
 function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return getComputedStyle(root).getPropertyValue(name).trim();
 }
 // Eight colours; series beyond that reuse them in order.
 const slot = (n: number) => token(`--series-${((n - 1) % 8) + 1}`);
@@ -319,7 +321,7 @@ function buildCard(def: ChartDef): void {
   plot.append(canvas);
   const tableWrap = el('div', { class: 'table-wrap', hidden: '' });
   card.append(head, plot, tableWrap);
-  document.getElementById('charts')!.append(card);
+  $('charts').append(card);
 
   const chart = new Chart(canvas, {
     type: 'line',
@@ -383,7 +385,7 @@ function buildCard(def: ChartDef): void {
 function update(id: string): void {
   const state = charts.get(id)!;
   const { chart, def, group, table } = state;
-  const card = document.getElementById(`card-${id}`)!;
+  const card = root.querySelector<HTMLElement>(`#card-${id}`)!;
   const plot = card.querySelector<HTMLElement>('.plot')!;
   const wrap = card.querySelector<HTMLElement>('.table-wrap')!;
   chart.data.labels = reports.map((r) => String(r.day));
@@ -418,7 +420,7 @@ function tile(label: string, value: string, note: string, tone: '' | 'up' | 'dow
   return t;
 }
 
-function renderTiles(world: World): void {
+function renderTiles(_world: World): void {
   const first = reports[0]!;
   const last = reports.at(-1)!;
   const sum = (f: (r: DayReport) => number) => reports.reduce((s, r) => s + f(r), 0);
@@ -432,7 +434,7 @@ function renderTiles(world: World): void {
   const wealth = change(last.wealth.median, first.wealth.median);
   const coins = change(last.townCoins, first.townCoins);
   const unemployed = (100 * (last.jobs.unemployed ?? 0)) / Math.max(1, last.ages.adults);
-  document.getElementById('tiles')!.replaceChildren(
+  $('tiles').replaceChildren(
     tile('Population', `${last.alive}`, `${born} born, ${died} died${starved ? `, ${starved} starved` : ''}`, starved || last.alive < first.alive ? 'down' : 'up'),
     tile('Median household', `${last.wealth.median} coins`, wealth.text, wealth.tone),
     tile('Unemployed', `${unemployed.toFixed(1)}%`, `${last.jobs.unemployed ?? 0} of ${last.ages.adults} working age`),
@@ -443,63 +445,56 @@ function renderTiles(world: World): void {
 }
 
 function renderEvents(): void {
-  const list = document.getElementById('events')!;
+  const list = $('events');
   const items = spans.map((s) => {
     const li = el('li');
     li.append(el('b', {}, s.name), document.createTextNode(` days ${s.from + 1}–${s.to + 1}`));
     return li;
   });
-  list.replaceChildren(...(items.length ? items : [el('li', {}, 'No events this run')]));
+  list.replaceChildren(...(items.length ? items : [el('li', {}, 'No events yet')]));
 }
 
-function run(seed: number, days: number): void {
-  const status = document.getElementById('status')!;
-  const button = document.getElementById('run') as HTMLButtonElement;
-  status.textContent = 'Running…';
-  button.disabled = true;
-  document.getElementById('charts')!.style.opacity = '0.5';
-  // Let the browser paint the busy state before the simulation takes the main thread.
-  setTimeout(() => {
-    const started = performance.now();
-    const world = createWorld(data, seed);
-    runDays(world, data, days);
-    reports = world.reports;
-    spans = eventSpans(reports);
-    if (!charts.size) CHARTS.forEach(buildCard);
-    for (const id of charts.keys()) update(id);
-    renderTiles(world);
-    renderEvents();
-    status.textContent = `Seed ${seed}: ${days} days in ${Math.round(performance.now() - started)} ms`;
-    button.disabled = false;
-    document.getElementById('charts')!.style.opacity = '1';
-    history.replaceState(null, '', `?seed=${seed}&days=${days}`);
-  }, 20);
+const SKELETON = `
+  <header class="masthead">
+    <div>
+      <h1 data-id="title">Town Ledger</h1>
+      <p class="sub" data-id="sub">Your town's history, day by day.</p>
+    </div>
+    <button type="button" class="ghost" data-id="close">Back to the town</button>
+  </header>
+  <section class="tiles" data-id="tiles" aria-label="Today at a glance"></section>
+  <section class="events">
+    <h2>Events</h2>
+    <ul class="chips" data-id="events"></ul>
+  </section>
+  <section class="grid" data-id="charts"></section>`;
+
+/** Sets up the Ledger inside `container`; call refresh() each day while it is open. */
+export function createLedger(container: HTMLElement, onClose: () => void): { refresh: (world: World, name: string) => void } {
+  root = container;
+  root.classList.add('ledger');
+  root.innerHTML = SKELETON;
+  $('close').addEventListener('click', onClose);
+  // Colours are read from CSS tokens, so rebuild when the light/dark scheme changes.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    for (const { chart } of charts.values()) chart.destroy();
+    charts.clear();
+    $('charts').replaceChildren();
+  });
+  return {
+    refresh(world: World, name: string) {
+      reports = world.reports;
+      if (!reports.length) {
+        $('sub').textContent = 'Nothing to show yet: come back after the first day.';
+        return;
+      }
+      $('title').textContent = `${name}: Town Ledger`;
+      $('sub').textContent = `Day ${world.day}. Every number is your town's own history, recorded day by day as you play.`;
+      spans = eventSpans(reports);
+      if (!charts.size) CHARTS.forEach(buildCard);
+      for (const id of charts.keys()) update(id);
+      renderTiles(world);
+      renderEvents();
+    },
+  };
 }
-
-// ---------- controls ----------
-
-const seedInput = document.getElementById('seed') as HTMLInputElement;
-const daysInput = document.getElementById('days') as HTMLSelectElement;
-const params = new URLSearchParams(location.search);
-seedInput.value = params.get('seed') ?? '1';
-if (params.get('days')) daysInput.value = params.get('days')!;
-
-document.getElementById('controls')!.addEventListener('submit', (e) => {
-  e.preventDefault();
-  run(Math.max(1, Math.floor(Number(seedInput.value) || 1)), Number(daysInput.value));
-});
-document.getElementById('random')!.addEventListener('click', () => {
-  seedInput.value = String(1 + Math.floor(Math.random() * 99999));
-  run(Number(seedInput.value), Number(daysInput.value));
-});
-
-// Colours are read from CSS tokens, so rebuild when the light/dark scheme changes.
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  for (const { chart } of charts.values()) chart.destroy();
-  charts.clear();
-  document.getElementById('charts')!.replaceChildren();
-  CHARTS.forEach(buildCard);
-  for (const id of charts.keys()) update(id);
-});
-
-run(Number(seedInput.value), Number(daysInput.value));

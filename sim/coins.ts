@@ -11,10 +11,10 @@ export function transfer(world: World, from: Account, to: Account, amount: numbe
 }
 
 export function allAccounts(world: World): Account[] {
-  return [...world.citizens, world.treasury, world.church, ...world.neighbours];
+  return [...world.citizens, world.treasury, world.church, ...world.neighbours, world.heavens];
 }
 
-/** Every coin in the world, including the dead's frozen estates and the neighbouring towns. Never changes. */
+/** Every coin in the world, including the dead's frozen estates, the neighbouring towns and the heavens. Never changes. */
 export function totalCoins(world: World): number {
   return allAccounts(world).reduce((sum, a) => sum + a.coins, 0);
 }

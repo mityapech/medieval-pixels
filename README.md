@@ -17,7 +17,12 @@ A walled medieval town on a lake, about 100 people in real families. Every perso
 day of work to do. Farmers plough and harvest, bakers knead and bake, fishermen row out before dawn, builders
 repair houses, children play by the canal, and in the evening the tavern fills up. Prices rise and fall with
 supply and demand, a few rich burghers own most of the property and everyone else rents, and the town grows or
-struggles over the years. Every town is different: type a new number in **Seed** and press **New town**.
+struggles over the years. Every two years the town elects a mayor, whose views change taxes, jobs, trade and
+welfare.
+
+**One town, played slowly.** When you open the game you get a title screen over a slow timelapse of your town.
+Press **Play** to found your town (give it a name) and it is saved in your browser: next time, **Continue** picks up
+the same day. Founding a new town replaces the old one, so stay with the one you have and watch it rise or fall.
 
 ## How to play
 
@@ -32,7 +37,14 @@ struggles over the years. Every town is different: type a new number in **Seed**
 | **Where did this come from?** | In a person's details, click something they own to trace who made it |
 | **Everyone in town** | **People** |
 | **What's happening** | Bottom left: **Overheard nearby** (conversations near you), **Town news**, **Market notices** |
-| **Charts and history** | **Town Ledger** (top right): population, wealth, prices, production over time |
+| **Charts and history** | **Ledger**: your town's population, wealth, prices and production since its founding |
+| **Politics** | **Town Hall**: the mayor, their party, what they changed, their decrees, past mayors |
+| **Elections** | Watch it live: candidates campaign at the market, voters walk in, the bars fill, the winner is cheered |
+| **Play god** | Click a person, open **✦ Powers**: rename them or their family, set their coins, marry or part them, move them to another household, make them head of it |
+| **Settings, save** | **Menu**: back to the title screen, settings (day length, start speed, labels). The town saves itself |
+
+Coins you give with ✦ Powers come from the heavens' purse (50,000 coins), and coins you take go back to it: no coin
+is ever created or destroyed, even by you.
 
 Tips: people near you show what they are doing over their heads, with a bar for how far along they are. When
 someone finishes a job, what they made floats up (`+5 bread`). Try **10×** speed to watch a whole day go by.
@@ -76,7 +88,7 @@ To stop it, go back to the terminal and press `Ctrl` + `C`. Next time you only n
 
 ```bash
 npm install
-npm run dev                                       # the game at http://localhost:5173, charts at /stats.html
+npm run dev                                       # the game at http://localhost:5173
 npm run sim -- --days 100 --seed 1 --talk 3       # run a town in the terminal, printing conversations
 npm test                                          # the rules: coins never change, nobody starves, and more
 npm run build                                     # the playable website, in dist/
@@ -86,7 +98,7 @@ Every push to `main` rebuilds the website and publishes it to GitHub Pages
 ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)).
 
 - `sim/`: the simulation (no graphics or input code). `sim/index.ts` is what the rest may use.
-- `render/`: the town view (`render/game`, PixiJS placeholder graphics) and the Town Ledger (`render/stats`, Chart.js).
+- `render/`: the town view (`render/game`, PixiJS placeholder graphics) and the Ledger (`render/ledger`, Chart.js), shown inside the game.
 - `data/`: goods, recipes, town settings, traits and names, events, dialogue, routines, business names, sprite names.
 - `tests/` and `scripts/`: the rules, and tools for checking balance across many towns.
 

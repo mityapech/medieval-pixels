@@ -12,3 +12,5 @@ export { cheapestMeal } from './agent';
 export { householdOf, kinOf, livingMembers } from './family';
 export { stockOf } from './inventory';
 export type * from './types';
+export { compact, loadWorld, saveWorld } from './save';
+export { canMarry, divorce, makeHead, marry, moveToFamily, renameCitizen, renameFamily, setCoins } from './god';

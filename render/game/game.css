@@ -87,3 +87,83 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 .trace { margin: 4px 0 0; padding-left: 0; list-style: none; font-size: 12px; }
 .trace li { padding-left: calc(var(--depth) * 14px); }
 .people-filter { width: 100%; margin: 6px 0; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); font: inherit; }
+
+/* Top bar additions */
+.town-name { margin-left: auto; font-weight: 650; }
+.bar .plain { border: 1px solid var(--border); background: transparent; color: var(--text-primary); padding: 4px 10px; border-radius: 6px; font: inherit; cursor: pointer; }
+
+/* Title screen */
+.title-screen {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px;
+  /* The town runs as a slow timelapse behind; a soft vignette keeps the card readable. */
+  background: radial-gradient(ellipse at center, rgba(20, 14, 6, 0.15), rgba(10, 8, 4, 0.7));
+}
+.title-card {
+  width: min(520px, 100%); background: color-mix(in srgb, var(--surface-1) 92%, transparent); backdrop-filter: blur(4px); border: 1px solid var(--border); border-radius: 14px;
+  padding: 28px 28px 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.title-card h1 { margin: 0; font: 700 34px/1.1 Georgia, 'Times New Roman', serif; letter-spacing: 0.01em; }
+.title-card h2 { font-size: 18px; margin: 0 0 12px; }
+.tagline { margin: 6px 0 18px; color: var(--text-secondary); }
+.continue { margin: 0 0 12px; color: var(--text-secondary); font-style: italic; }
+.title-buttons { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.title-buttons button {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-primary);
+  font: 600 15px system-ui, sans-serif; cursor: pointer; text-align: left;
+}
+.title-buttons button.primary { background: var(--accent); color: #fff; border-color: transparent; text-align: center; font-size: 17px; }
+.title-buttons button:hover { filter: brightness(1.08); }
+.title-card form { display: flex; flex-direction: column; gap: 12px; }
+.title-card label { display: flex; flex-direction: column; gap: 4px; color: var(--text-secondary); }
+.title-card label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--text-primary); }
+.title-card input:not([type='checkbox']), .title-card select {
+  padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--page); color: var(--text-primary); font: inherit; font-size: 15px;
+}
+.warning { margin: 0; color: var(--critical); font-size: 12px; }
+.info-list { padding-left: 18px; margin: 8px 0; color: var(--text-secondary); }
+.info-list li { margin: 4px 0; }
+
+/* Town Hall */
+.hall { top: 64px; left: 12px; width: 380px; max-height: calc(100% - 330px); overflow: auto; padding: 12px 14px; z-index: 5; }
+.hall h3 { margin: 0; font-size: 16px; }
+.hall h4 { margin: 12px 0 4px; font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.hall table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.hall td { padding: 2px 4px; border-bottom: 1px solid var(--border); }
+.hall td:last-child { text-align: right; }
+.change-up { color: #1b8a3a; }
+.change-down { color: var(--critical); }
+.doctrine-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; color: #fff; font-size: 12px; font-weight: 600; }
+
+/* Election overlay */
+.election {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 20; width: min(560px, calc(100% - 24px));
+  background: color-mix(in srgb, var(--surface-1) 96%, transparent); border: 2px solid #c9a227; border-radius: 12px;
+  padding: 12px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.election h3 { margin: 0 0 2px; font: 700 18px Georgia, serif; }
+.election .sub { margin: 0 0 8px; color: var(--text-secondary); font-size: 12px; }
+.election .cand { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 6px 0; }
+.election .bar-track { grid-column: 1 / -1; height: 10px; border-radius: 5px; background: var(--border); overflow: hidden; }
+.election .bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+.election .winner { margin-top: 8px; font: 700 16px Georgia, serif; text-align: center; animation: pop 0.6s ease; }
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+
+/* While the title screen is up, the game's own controls are hidden; only the timelapse shows. */
+body.on-title .bar, body.on-title .panel, body.on-title .help { display: none; }
+.election .cand.won .bar-track { box-shadow: 0 0 0 2px #c9a227; }
+.election .last-vote { min-height: 1.2em; margin: 6px 0 0; font-style: italic; }
+
+/* Anything hidden stays hidden, whatever display its class sets. */
+[hidden] { display: none !important; }
+
+/* The player's powers, in the person inspector */
+.powers { margin: 8px 0; padding: 6px 8px; border: 1px solid #c9a227; border-radius: 8px; background: color-mix(in srgb, #c9a227 8%, transparent); }
+.powers summary { cursor: pointer; font-weight: 650; color: #8a6d12; }
+.power-row { display: flex; align-items: flex-end; gap: 6px; margin: 6px 0; }
+.power-row label { flex: 1; display: grid; gap: 2px; font-size: 12px; color: var(--text-secondary); min-width: 0; }
+.power-row input, .power-row select { font: inherit; font-size: 13px; padding: 3px 5px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-1); color: var(--text-primary); min-width: 0; }
+.power-row button { font: inherit; font-size: 12px; padding: 4px 9px; border: 1px solid #c9a227; border-radius: 5px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; white-space: nowrap; }
+.power-row button:hover { background: color-mix(in srgb, #c9a227 18%, var(--surface-1)); }
+.power-error { margin: 4px 0 0; color: var(--critical); font-size: 12px; min-height: 0; }
+.power-error:empty { display: none; }
+#news li.miracle { border-left: 3px solid #c9a227; padding-left: 6px; }

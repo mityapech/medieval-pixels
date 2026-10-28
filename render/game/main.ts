@@ -4,17 +4,27 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import spritesJson from '../../data/sprites.json';
 import {
-  cheapestMeal, createWorld, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
-  type Conversation, type DayReport,
+  cheapestMeal, compact, householdOf, kinOf, livingMembers, loadData, stockOf, tick, traceBatch, type Advert, type Citizen,
+  type Conversation, type DayReport, type Doctrine,
 } from '../../sim/index';
 import { TILE, centre, layoutTown, spotIn, type Place } from './layout';
 import { Life, type Mover, type Target } from './life';
 import { doctrineName } from '../../sim/politics';
+import { backdropTown, loadSettings, savedTown, showTitle, startPlaying, storeTown } from './title';
+import { createLedger } from '../ledger/ledger';
+import { DOCTRINE_COLOUR, renderHall } from './hall';
+import { ElectionView, POLLS, speech, voteTime } from './election';
+import { renderPowers } from './powers';
 
 const data = loadData();
-const params = new URLSearchParams(location.search);
-const seed = Math.max(1, Number(params.get('seed')) || 1);
-const world = createWorld(data, seed);
+let settings = loadSettings();
+// Playing your town, or showing the title screen over a timelapse of a copy of it (or a demo town).
+const playing = startPlaying();
+const saved = playing ? savedTown() : undefined;
+const backdrop = saved ? undefined : backdropTown(data);
+const world = saved?.world ?? backdrop!.world;
+const townName = saved?.name ?? backdrop!.name;
+const onTitle = !saved;
 const places = layoutTown(world);
 const life = new Life(world, data, places);
 const MAP_W = world.land.width;
@@ -22,9 +32,11 @@ const MAP_H = world.land.height;
 
 // ---------- time ----------
 
-const DAY_MS = 4 * 60 * 1000; // one in-game day is about 4 real minutes at 1x (DESIGN.md section 3)
-let speed = Number(params.get('speed') ?? 1);
-let clock = 0.25; // fraction of the day; the town wakes at 06:00
+// One in-game day lasts settings.dayMinutes of real time at 1x (4 minutes by default; DESIGN.md section 3).
+let DAY_MS = settings.dayMinutes * 60 * 1000;
+// The title screen's timelapse runs fast; playing starts at the speed chosen in settings.
+let speed = onTitle ? 30 : settings.startSpeed;
+let clock = saved?.clock ?? 0.25; // fraction of the day; the town wakes at 06:00
 const HEARING = 7 * TILE;
 
 function phase(t: number): 'night' | 'morning' | 'work' | 'market' | 'evening' {
@@ -182,7 +194,7 @@ addWalkers();
 
 /** What someone is doing, shown over their head when they are near the observer. */
 function showTag(w: Walker, task: string | undefined): void {
-  const near = task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
+  const near = settings.taskLabels && !onTitle && task && Math.hypot(w.x - observer.x, w.y - observer.y) <= HEARING;
   if (!near) { if (w.tag) w.tag.visible = false; return; }
   if (!w.tag) {
     w.tag = new Text({ text: '', style: { fontFamily: MAP_FONT, fontSize: 9, fill: 0xfcfaf2, stroke: { color: 0x1a1a19, width: 3, join: 'round' }, padding: 6 }, resolution: 3 });
@@ -224,6 +236,12 @@ function drawWalker(w: Walker, progress?: number): void {
   // Out on the water, people sit in a small boat.
   if (life.onWater(w.x, w.y)) w.g.roundRect(-11, -4, 22, 11, 5).fill(0x6e4e2c).stroke({ width: 1.5, color: 0x3b2a18 });
   w.g.rect(-size / 2, -size / 2, size, size).fill(colour).stroke({ width: 1.5, color: 0x1a1a19 });
+  // Candidates carry a banner in their party's colour through the campaign and on election day.
+  const party = candidateDoctrine.get(w.c.id);
+  if (party) {
+    w.g.rect(size / 2, -size / 2 - 13, 1.5, 13 + size / 2).fill(0x3b2a18);
+    w.g.rect(size / 2 + 1.5, -size / 2 - 13, 10, 6).fill(DOCTRINE_COLOUR[party]).stroke({ width: 1, color: 0x1a1a19 });
+  }
   if (selected === w.c.id) w.g.rect(-size / 2 - 3, -size / 2 - 3, size + 6, size + 6).stroke({ width: 2, color: 0xffffff });
   if (progress !== undefined) {
     // Progress through the current step, in the worker's colour.
@@ -258,6 +276,8 @@ function target(c: Citizen, t: number): Target {
   const home = placeFor(homeKey)!;
   const talking = talks.find((k) => k.c.participants.includes(c.id) && t >= k.start && t < k.start + 0.03);
   if (talking) return { dest: talking.place.key, ...spotIn(talking.place, c.id), mode: 'still', task: 'Talking' };
+  const vote = politicsTarget(c, t);
+  if (vote) return vote;
   const act = life.activity(c, t);
   if (act) return act;
   // Evening at the tavern for those who went tonight.
@@ -284,9 +304,19 @@ function scheduleTalks(conversations: Conversation[]): void {
   });
 }
 
+/** Midnight: the simulation runs the next day, then the town view sets it up to be watched. */
 function newDay(): void {
   const before = world.land.places.map((p) => `${p.key}|${p.label}`).join();
   const report = tick(world, data);
+  startDay(report, before);
+  // Your town is kept small and saved every day (never the title screen's timelapse).
+  if (!onTitle) { compact(world); save(); }
+  if (ledger && !ledgerPanel.hidden) ledger.refresh(world, townName);
+  if (!hallPanel.hidden) refreshHall();
+}
+
+/** Sets up a day to watch: buildings, newcomers, plans, conversations, adverts and the news. */
+function startDay(report: DayReport, before = ''): void {
   // The town changed: houses started or finished, children born.
   if (world.land.places.map((p) => `${p.key}|${p.label}`).join() !== before) {
     places.clear();
@@ -298,6 +328,7 @@ function newDay(): void {
   life.newDay();
   scheduleTalks(report.conversations);
   scheduleAdverts(report);
+  startPolitics(report);
   postNews(report);
   refreshMoney();
   if (selected !== null) inspectCitizen(world.citizens[selected]!);
@@ -382,6 +413,122 @@ function overhear(k: Talk): void {
   while (log.children.length > 40) log.lastElementChild!.remove();
 }
 
+// ---------- politics on the map: campaign speeches at the market, election day ----------
+
+let campaign: DayReport['campaign'];
+let election: DayReport['election'];
+let electionView: ElectionView | undefined;
+const candidateDoctrine = new Map<number, Doctrine>();
+let nextSpeech = 0;
+let speeches = 0;
+const electionEl = document.getElementById('election')!;
+
+/** Where a candidate stands at the market: in a row along its top edge. */
+function stump(i: number, n: number): { x: number; y: number } {
+  const m = placeFor('market')!;
+  return { x: (m.x + ((i + 1) / (n + 1)) * m.w) * TILE, y: (m.y + 0.6) * TILE };
+}
+
+function startPolitics(r: DayReport): void {
+  election = r.election;
+  campaign = election ? undefined : r.campaign;
+  candidateDoctrine.clear();
+  for (const c of (election ?? campaign)?.candidates ?? []) candidateDoctrine.set(c.id, c.doctrine);
+  electionView?.hide();
+  electionView = undefined;
+  if (!election || onTitle) return;
+  // At 60x the whole day passes in seconds: slow down to watch the vote.
+  const slowed = speed > 10;
+  if (slowed) setSpeed(10);
+  electionView = new ElectionView(electionEl, election, r.day, townName, slowed);
+  if (clock >= POLLS.announce) { electionView.countRest(nameOf); electionView.announce(); }
+}
+const nameOf = (id: number) => world.citizens[id]!.name;
+
+/** Candidates at the market in campaign hours and on election day; voters walking in to cast their ballots. */
+function politicsTarget(c: Citizen, t: number): Target | undefined {
+  if (!placeFor('market')) return undefined;
+  const cands = (election ?? campaign)?.candidates ?? [];
+  const i = cands.findIndex((x) => x.id === c.id);
+  if (i >= 0) {
+    const [from, to] = election ? [POLLS.open - 0.03, POLLS.closeOverlay - 0.06] : [0.56, 0.72];
+    if (t >= from && t < to) {
+      const task = !election ? `Campaigning: ${doctrineName(cands[i]!.doctrine)}` : t >= POLLS.announce ? (c.id === election.winner ? 'Elected mayor!' : 'Lost the election') : 'Awaiting the vote';
+      return { dest: 'market', ...stump(i, cands.length), mode: 'still', task };
+    }
+  }
+  if (election && election.ballots[c.id] !== undefined) {
+    const at = voteTime(c.id);
+    if (t >= at && t < at + 0.04) return { dest: 'market', ...life.spot('market', c.id, world.day + 7), mode: 'still', task: 'Casting a vote' };
+  }
+  return undefined;
+}
+
+function updatePolitics(now: number): void {
+  // Campaign speeches: the candidates take turns at the market.
+  if (campaign && clock >= 0.58 && clock < 0.72 && now >= nextSpeech) {
+    const c = campaign.candidates[speeches % campaign.candidates.length]!;
+    const w = walkers.get(c.id);
+    if (w?.settledAt === 'market') {
+      say(w.c, speech(c.doctrine, Math.floor(speeches / campaign.candidates.length) + world.day), 0);
+      nextSpeech = now + LINE_MS * 1.2;
+    }
+    speeches++;
+  }
+  if (!election || !electionView) return;
+  // A ballot is counted when its voter reaches the market (or their time has passed, if they never got there).
+  for (const key of Object.keys(election.ballots)) {
+    const v = Number(key);
+    const at = voteTime(v);
+    if (clock < at) continue;
+    const w = walkers.get(v);
+    if (clock < at + 0.04 && w?.settledAt !== 'market') continue;
+    const cand = electionView.cast(v, nameOf(v));
+    const cw = cand !== undefined ? walkers.get(cand) : undefined;
+    if (cw) floatUp(cw, '+1 vote');
+  }
+  electionView.update(clock);
+  if (!electionView.announced && clock >= POLLS.announce) {
+    electionView.countRest(nameOf);
+    electionView.announce();
+    celebrate(now);
+    refreshMoney();
+  }
+  if (clock >= POLLS.closeOverlay) { electionView.hide(); electionView = undefined; }
+}
+
+// Confetti over the winner.
+interface Confetto { g: Graphics; x: number; y: number; vx: number; vy: number; spin: number; born: number }
+let confetti: Confetto[] = [];
+function celebrate(now: number): void {
+  const e = election!;
+  const party = candidateDoctrine.get(e.winner)!;
+  const w = walkers.get(e.winner);
+  const at = w ?? centre(placeFor('market')!);
+  const colours = [Number.parseInt(DOCTRINE_COLOUR[party].slice(1), 16), 0xffd447, 0xffffff];
+  for (let i = 0; i < 90; i++) {
+    const g = new Graphics().rect(-2, -1.5, 4, 3).fill(colours[i % 3]!);
+    bubbleLayer.addChild(g);
+    confetti.push({ g, x: at.x, y: at.y - 10, vx: (Math.random() - 0.5) * 0.22, vy: -0.12 - Math.random() * 0.22, spin: (Math.random() - 0.5) * 0.03, born: now });
+  }
+  say(world.citizens[e.winner]!, `Thank you, ${townName || 'friends'}! ${speech(party, 0)}`, 0);
+  for (const c of e.candidates) if (c.id !== e.winner) say(world.citizens[c.id]!, 'The town has spoken. Congratulations.', LINE_MS);
+}
+function animateConfetti(now: number, dt: number): void {
+  confetti = confetti.filter((p) => {
+    const age = now - p.born;
+    if (age > 4000) { p.g.destroy(); return false; }
+    p.vy += 0.0005 * dt;
+    p.vx *= 0.995;
+    p.x += p.vx * dt;
+    p.y += Math.min(p.vy, 0.06) * dt;
+    p.g.position.set(p.x, p.y);
+    p.g.rotation += p.spin * dt;
+    p.g.alpha = age > 2500 ? 1 - (age - 2500) / 1500 : 1;
+    return true;
+  });
+}
+
 // ---------- the frame loop ----------
 
 const keys = new Set<string>();
@@ -406,8 +553,15 @@ app.ticker.add((t) => {
   clock += (dt / DAY_MS) * speed;
   if (clock >= 1) { clock -= 1; newDay(); }
 
+  // On the title screen the camera drifts slowly around the town instead.
+  if (onTitle) {
+    const m = centre(places.get('market')!);
+    const a = performance.now() / 40000;
+    observer.x = m.x + Math.cos(a) * MAP_W * TILE * 0.18;
+    observer.y = m.y + Math.sin(a * 0.8) * MAP_H * TILE * 0.14;
+  }
   // Observer walks at the same speed whatever the game speed.
-  const step = 0.25 * dt;
+  const step = onTitle ? 0 : 0.25 * dt;
   if (keys.has('w') || keys.has('arrowup')) observer.y -= step;
   if (keys.has('s') || keys.has('arrowdown')) observer.y += step;
   if (keys.has('a') || keys.has('arrowleft')) observer.x -= step;
@@ -431,7 +585,7 @@ app.ticker.add((t) => {
   for (const w of byNearness) {
     const to = w.c.alive ? target(w.c, clock) : undefined;
     // A progress bar while someone is at work on a step (not while walking there).
-    const working = to?.progress !== undefined && w.settledAt === to.dest && to.task !== 'At home' ? to.progress : undefined;
+    const working = settings.taskLabels && to?.progress !== undefined && w.settledAt === to.dest && to.task !== 'At home' ? to.progress : undefined;
     drawWalker(w, working);
     if (!w.c.alive || !to) continue;
     // A job finished: what it made rises from the worker.
@@ -454,7 +608,9 @@ app.ticker.add((t) => {
   }
 
   cryWares();
+  updatePolitics(now);
   animateFloaters(now);
+  animateConfetti(now, dt);
 
   // Conversations start at their time; only those within hearing of the observer are shown.
   for (const k of talks) {
@@ -498,7 +654,7 @@ function refreshMoney(): void {
   const rows: [string, string][] = r
     ? [
         ['Standing', `${r.fortune.level} (${r.fortune.score})`],
-        ['Mayor', r.mayor ? `${r.mayor.name}, ${doctrineName(r.mayor.doctrine)}` : 'none yet'],
+        ['Mayor', r.election && clock < POLLS.announce ? 'chosen today' : r.mayor ? `${r.mayor.name}, ${doctrineName(r.mayor.doctrine)}` : 'none yet'],
         ['Bread', r.prices.bread !== undefined ? `${r.prices.bread.toFixed(1)} coins` : '–'],
         ['Vegetables', r.prices.vegetables !== undefined ? `${r.prices.vegetables.toFixed(1)} coins` : '–'],
         ['Wood', r.prices.wood !== undefined ? `${r.prices.wood.toFixed(1)} coins` : '–'],
@@ -518,7 +674,6 @@ function refreshMoney(): void {
     return [dt, dd];
   }));
   document.getElementById('events')!.textContent = world.events.length ? `Now: ${world.events.map((e) => e.name).join(', ')}` : '';
-  (document.getElementById('ledger') as HTMLAnchorElement).href = `stats.html?seed=${seed}&days=${Math.max(100, world.day)}`;
 }
 
 // ---------- controls: step a day, start a new town ----------
@@ -528,12 +683,34 @@ document.getElementById('step')!.addEventListener('click', () => {
   newDay();
   clock = 0.25;
 });
-const seedInput = document.getElementById('seed') as HTMLInputElement;
-seedInput.value = String(seed);
-document.getElementById('newtown')!.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const next = Math.max(1, Math.floor(Number(seedInput.value) || 1));
-  location.search = `?seed=${next === seed ? 1 + Math.floor(Math.random() * 99999) : next}&speed=${speed}`;
+document.getElementById('menu')!.addEventListener('click', () => {
+  save();
+  const before = speed;
+  setSpeed(0);
+  showTitle(data, {
+    onResume: () => setSpeed(before),
+    onSettings: (next) => { settings = next; DAY_MS = settings.dayMinutes * 60 * 1000; },
+  });
+});
+
+// The Town Hall: the mayor, the policy in force and what is changing, refreshed each day while it is open.
+const hallPanel = document.getElementById('hall-panel')!;
+function refreshHall(): void {
+  renderHall(document.getElementById('hall-body')!, world, data, townName, (id) => { hallPanel.hidden = true; inspectCitizen(world.citizens[id]!); });
+}
+document.getElementById('hall')!.addEventListener('click', () => {
+  hallPanel.hidden = !hallPanel.hidden;
+  if (!hallPanel.hidden) { panel.hidden = true; refreshHall(); }
+});
+document.getElementById('hall-close')!.addEventListener('click', () => { hallPanel.hidden = true; });
+
+// The Ledger: charts of this town's own history, refreshed each day while it is open.
+const ledgerPanel = document.getElementById('ledger-panel')!;
+let ledger: ReturnType<typeof createLedger> | undefined;
+document.getElementById('ledger')!.addEventListener('click', () => {
+  ledger ??= createLedger(ledgerPanel, () => { ledgerPanel.hidden = true; });
+  ledgerPanel.hidden = false;
+  ledger.refresh(world, townName);
 });
 
 // ---------- town news: deaths, work, families, events, trade ----------
@@ -545,6 +722,9 @@ function postNews(r: DayReport): void {
   if (r.election) {
     const tally = r.election.candidates.map((c) => `${c.name} (${doctrineName(c.doctrine)}) ${r.election!.votes[c.id] ?? 0}`).join(', ');
     items.push(`Election results: ${tally}`);
+  }
+  if (r.campaign && !r.election && world.reports.at(-2)?.campaign === undefined) {
+    items.push(`The campaign for mayor has begun: ${r.campaign.candidates.map((c) => `${c.name} (${doctrineName(c.doctrine)})`).join(', ')}. The town votes on day ${r.campaign.electionDay}.`);
   }
   for (const sale of r.propertySales) items.push(sale);
   for (const j of r.jobChanges) {
@@ -643,6 +823,7 @@ function inspectCitizen(c: Citizen): void {
       ['Worries', worries.join('; ') || 'none pressing'],
       ['Now', target(c, clock).task ?? '–'],
     ]),
+    renderPowers(world, data, c, (text) => miracle(text, c)),
   );
   const plan = life.planOf(c);
   if (plan.length) {
@@ -701,6 +882,22 @@ function inspectCitizen(c: Citizen): void {
     body.append(ul);
   }
   panel.hidden = false;
+}
+
+/** The player used a power: it goes in the town news, and the town is redrawn (names and homes may have changed). */
+function miracle(text: string, c: Citizen): void {
+  const news = document.getElementById('news')!;
+  const li = h('li', undefined, 'miracle');
+  li.append(h('div', `Day ${world.day}, by your hand`, 'where'), h('div', `✦ ${text}`));
+  news.prepend(li);
+  showTab('news');
+  places.clear();
+  for (const [k, p] of layoutTown(world)) places.set(k, p);
+  drawPlaces();
+  refreshMoney();
+  if (!hallPanel.hidden) refreshHall();
+  inspectCitizen(c);
+  if (!onTitle) save();
 }
 
 /** Everyone in town, filterable by name or work; click a name to inspect them. */
@@ -772,6 +969,24 @@ function inspectPlace(p: Place): void {
   panel.hidden = false;
 }
 
-// Start: the first day's work has already happened in the simulation; replay it from morning.
-newDay();
-clock = 0.25;
+// Start: a new town runs its first day; a saved town picks up the day it was on.
+// In development, days can be skipped from the browser console to reach an election quickly.
+if (import.meta.env.DEV) (window as unknown as { townDebug: unknown }).townDebug = { world, newDay, setClock: (t: number) => { clock = t; } };
+if (world.day === 0) { newDay(); clock = 0.25; } else { startDay(world.reports.at(-1)!); }
+document.getElementById('town-name')!.textContent = townName;
+if (onTitle) {
+  showTitle(data);
+  observerG.visible = false;
+  hearingG.visible = false;
+} else {
+  document.getElementById('title')!.hidden = true;
+  document.body.classList.remove('on-title');
+}
+
+function save(): void {
+  if (!storeTown(world, townName, clock)) document.getElementById('events')!.textContent = 'Could not save: browser storage is full or blocked.';
+}
+if (!onTitle) {
+  setInterval(save, 30_000);
+  addEventListener('pagehide', save);
+}

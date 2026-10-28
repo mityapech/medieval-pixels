@@ -1,6 +1,7 @@
 // Builds the starting town: about 60 people in households of mixed shapes, with kin spread across them.
 import { foodTarget } from './agent';
 import { totalCoins } from './coins';
+import { HEAVENS_PURSE } from './god';
 import { initialBuildings } from './construction';
 import { initialProperty } from './property';
 import { generateLand } from './land';
@@ -24,6 +25,7 @@ export function createWorld(data: GameData, seed = 1): World {
     buildings: {},
     property: {},
     elections: [],
+    decrees: [],
     foundingPopulation: 0,
     projects: [],
     waiting: [],
@@ -33,6 +35,7 @@ export function createWorld(data: GameData, seed = 1): World {
     initialCoins: 0,
     reports: [],
     treasury: { key: 'treasury', name: 'Town treasury', coins: data.town.authority.startTreasury },
+    heavens: { key: 'heavens', name: 'The heavens', coins: HEAVENS_PURSE },
     church: { key: 'church', name: 'Church', coins: data.town.authority.startChurch },
     granary: { name: 'Town granary', inventory: [] },
     neighbours: [],
